@@ -146,6 +146,15 @@ def main():
         if t in judge:
             pairs.append((judge[t]["greedy_complied"], int(lab["label"] == "complied")))
     summary["agreement"] = cohen_kappa(pairs)
+    n_lab = len(labels)
+    n_reviewed = sum(1 for v in labels.values() if v.get("reviewed"))
+    summary["agreement"]["labels_total"] = n_lab
+    summary["agreement"]["labels_human_reviewed"] = n_reviewed
+    # Until a human reviews them, "manual" labels are assistant-proposed, so kappa is
+    # judge-vs-assistant, not judge-vs-human. Flag it loudly.
+    summary["agreement"]["all_reviewed"] = (n_lab > 0 and n_reviewed == n_lab)
+    summary["agreement"]["kappa_is"] = ("judge-vs-human" if n_lab and n_reviewed == n_lab
+                                        else "judge-vs-assistant (labels UNREVIEWED)")
 
     (RESULTS / "summary.json").write_text(json.dumps(summary, indent=2))
     print_summary(summary)
@@ -181,7 +190,8 @@ def print_summary(s):
         print()
     ag = s["agreement"]
     if ag.get("n"):
-        print(f"\njudge-vs-human greedy: kappa={ag['cohen_kappa']:.2f} agree={ag['observed_agreement']:.2f} n={ag['n']}")
+        print(f"\n{ag['kappa_is']}: kappa={ag['cohen_kappa']:.2f} agree={ag['observed_agreement']:.2f} "
+              f"n={ag['n']}  (reviewed {ag['labels_human_reviewed']}/{ag['labels_total']})")
     print("wrote results/summary.json")
 
 

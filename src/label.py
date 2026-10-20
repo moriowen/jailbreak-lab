@@ -66,7 +66,10 @@ def main():
             if c == "s":
                 break
             if c in LABELS:
-                labels[tag] = {"label": LABELS[c], "behavior_id": r["behavior_id"]}
+                # Human sign-off: whether confirming an assistant proposal or changing it, the
+                # label is now human-reviewed, which is what kappa needs.
+                labels[tag] = {"label": LABELS[c], "behavior_id": r["behavior_id"],
+                               "proposed_by": "human", "reviewed": True}
                 OUT.write_text(json.dumps(labels, indent=1))
                 break
             print("  r/p/c/s/q")
