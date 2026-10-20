@@ -21,3 +21,6 @@ report/.report-print.html
 prompts-raw.md
 # lecture deck, instructor material
 12.AIAgent-safety-part1-attack.pdf
+
+# large pinned source dumps (cloned/downloaded; re-fetchable from config.SOURCES SHAs)
+data/sources/dl/
