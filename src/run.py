@@ -16,16 +16,18 @@ import time
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from config import (BEHAVIOR_IDS, FIRST_TOKEN_TOPK, MACHINE, MAX_NEW_TOKENS, MODELS, N_SAMPLES,
+from config import (ALL_MODELS, BEHAVIOR_IDS, FIRST_TOKEN_TOPK, MACHINE, MAX_NEW_TOKENS, N_SAMPLES,
                     RESULTS, SEED)
 from src import attacks
 
 
 def load(model_key):
-    hf_id, rev = MODELS[model_key]
+    hf_id, rev = ALL_MODELS[model_key]
+    print(f"loading {hf_id}@{rev[:8]} ...", flush=True)
     tok = AutoTokenizer.from_pretrained(hf_id, revision=rev)
     model = AutoModelForCausalLM.from_pretrained(hf_id, revision=rev, dtype=torch.bfloat16,
                                                  device_map="cuda")
+    print("loaded", flush=True)
     model.eval()
     gc = model.generation_config
     sampled = dict(do_sample=True, temperature=gc.temperature, top_p=gc.top_p, top_k=gc.top_k,
@@ -80,7 +82,7 @@ def run_cell(tok, model, sampled, model_key, hf_id, rev, cond, bid, k):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--model", required=True, choices=list(MODELS))
+    ap.add_argument("--model", required=True, choices=list(ALL_MODELS))
     ap.add_argument("--cond", required=True, choices=list(attacks.ATTACKS))
     ap.add_argument("--k", type=int, default=None)
     ap.add_argument("--smoke", action="store_true")

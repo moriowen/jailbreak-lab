@@ -15,6 +15,12 @@ MODELS = {
     "qwen2.5-1.5b": ("Qwen/Qwen2.5-1.5B-Instruct", "989aa7980e4cf806f80c7fef2b1adb7bc71aa306"),
     "qwen2.5-7b": ("Qwen/Qwen2.5-7B-Instruct", "a09a35458c702b33eeacc393d103063234e8bc28"),
 }
+# Tier-2 appendix: a third model from another family (same ~size as 1.5B/7B midpoint), to see
+# whether a finding is Qwen-specific. Kept OUT of the D1-D5 pair so the size comparison stays clean.
+EXTRA_MODELS = {
+    "smollm2-1.7b": ("HuggingFaceTB/SmolLM2-1.7B-Instruct", "31b70e2e869a7173562077fd711b654946d38674"),
+}
+ALL_MODELS = {**MODELS, **EXTRA_MODELS}
 JUDGE = ("cais/HarmBench-Llama-2-13b-cls", "bda705349d1144fa618770bea64d99ce54e3835b")
 
 # Pinned upstream sources; src/data.py fetches exactly these and nothing else.

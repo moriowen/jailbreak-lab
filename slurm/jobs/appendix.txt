@@ -1,0 +1,8 @@
+python -u -m src.run --model smollm2-1.7b --cond direct
+python -u -m src.run --model smollm2-1.7b --cond A1
+python -u -m src.run --model smollm2-1.7b --cond A2
+python -u -m src.run --model smollm2-1.7b --cond A4
+python -u -m src.run --model smollm2-1.7b --cond A5
+python -u -m src.run --model smollm2-1.7b --cond A3 --k 4
+python -u -m src.run --model smollm2-1.7b --cond A3 --k 8
+python -u -m src.run --model smollm2-1.7b --cond A3 --k 16

@@ -15,6 +15,7 @@ set -euo pipefail
 cd "$SLURM_SUBMIT_DIR"
 source "$HOME/scratch/HW3/.venv-ice/bin/activate"
 export HF_HOME="$HOME/scratch/hf" TOKENIZERS_PARALLELISM=false PYTHONPATH="$PWD"
+export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 gpu=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -1 | tr ' ' '-')
 export BDS_MACHINE="pace-ice-$gpu"
 per=${PER_TASK:-1}
