@@ -220,9 +220,8 @@ HW4/
 the output, in shuffled order), so the human labels aren't biased by knowing which attack
 produced them.
 
-**Repo.** Local `git init`, private. The course convention would be a `moriowen/6220-bds` course
-repo, but HW1 and HW3 are per-assignment repos, so the user decides the remote (open question
-below). `.gitignore`: `results/gen_*`, `results/judge_*`, the handout PDF, the lecture deck,
+**Repo.** `moriowen/jailbreak-lab`, **private** (user, Oct 20: "on GH like the other labs"; it
+stays private because of the attack content, unlike the public HW1/HW3 labs). `.gitignore`: `results/gen_*`, `results/judge_*`, the handout PDF, the lecture deck,
 `prompts-raw.md`, `*.pdf`, `*.zip`.
 
 ---
@@ -293,9 +292,7 @@ and the recorded AI rounds.
 ## 12. Open questions for the user
 
 1. **The deck.** Drop it in `HW4/`. §3 is locked after reading it.
-2. **Git remote.** A new private `moriowen/jailbreak-lab`, a course repo `moriowen/6220-bds`,
-   or local only?
-3. **Llama Guard access.** Request it now (for the Tier 2 defence check), or drop that extra?
+2. **Llama Guard access.** Request it now (for the Tier 2 defence check), or drop that extra?
 
 ## 13. References
 
