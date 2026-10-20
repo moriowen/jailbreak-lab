@@ -28,9 +28,9 @@ exact prompts, extras in appendices, limitations up front).
    and Q7 reads it as "with jailbreak attacks".
 2. The naming line says "**Reading** HW should start with HW4_P_…" on a programming handout.
    The P in the filename and the programming category settle it: `HW4_P_Mohite_Atharva.pdf`.
-3. The handout says attack types should come "based on the lecture on AI agent Safety part
-   1-attack (delivered on Oct 1)". That deck isn't in `../lecture-notes/`, and the user is
-   providing it. §3 is provisional until then.
+3. The handout calls the lecture "AI agent Safety part 1-attack (delivered on Oct 1)". The deck
+   is `12.AIAgent-safety-part1-attack.pdf`, titled "Safety and Security of LLMs and Agentic AI
+   Agents", and its footer dates it 10/4/26. §3 cites its slide numbers.
 
 **Grading.** Per question: Step 1 final answer 15%, tool URL 5%, exact prompts and every round
 15%, **4a strategy 30%**, **4b critique 30%**, references 5%. The body is capped at 8 pages, and
@@ -77,18 +77,44 @@ following instructions". This design answers those questions:
 
 ## 3. The five attacks
 
-Provisional mapping. Once the deck arrives, each row also gets the lecture's category name and a
-slide number, and any row the lecture doesn't cover is swapped for one it does. Exact prompt
-text lives in `src/attacks.py` as `fn(behavior) -> messages` and is quoted from there.
+Each attack is mapped to its category in the Oct 1 deck (`12.AIAgent-safety-part1-attack.pdf`,
+"Safety and Security of LLMs and Agentic AI Agents", Prof. Ling Liu; the slide numbers are the
+ones printed on the slides). Exact prompt text lives in `src/attacks.py` as
+`fn(behavior) -> messages` and is quoted from there.
 
-| # | Type | Mechanism it tests | Source of prompt text | Cite |
+**The lecture's taxonomy** (slides 11–28): prompt-engineering attacks (11–12); adversarial
+prompt injection, split into prefix, suffix, invisible and transformation-based (13–14);
+direct injection (DAN) and system override (15); indirect requests (16); academic purpose
+framing (17–18); alignment exploitation, a.k.a. roleplay or hypothetical framing (19);
+Socratic questioning (20–22); superior model claims and one-shot learning (23); multi-shot
+learning (24); adversarial suffix / GCG (25); invisible injection (26); transformation by
+low-resource language or cipher (27); and conversational attacks, the knowledge ladder and
+scope creep (28). Indirect injection through data (38) is the agent case.
+
+| # | Lecture category (slide) | Mechanism it tests | Source of prompt text | Cite |
 |---|---|---|---|---|
-| A1 | Role-play / persona (DAN-style) | Competing objectives: the persona instruction against the safety objective | A DAN prompt copied verbatim from the `verazuo/jailbreak_llms` dataset, with its row ID | Shen et al., CCS 2024 |
-| A2 | Meta-prompt / nested fiction (DeepInception) | Competing objectives plus distraction: the harm is moved into layers of fiction | The DeepInception template from the authors' repo, verbatim | Li et al., 2023 |
-| A3 | Few-shot / many-shot in-context | In-context override: the demonstrated behaviour beats the post-training prior | Faux dialogues built by template (below) at k ∈ {4, 16, 64} shots | Anil et al., 2024 |
-| A4 | Indirect / obfuscation (base64; low-resource translation as a variant) | Mismatched generalisation: safety training doesn't cover the encoded input | Wei et al.'s `base64_input_only` format | Wei et al., NeurIPS 2023; Yong et al., 2023 |
-| A5 | Refusal suppression + prefix injection | Competing objectives working on the first tokens (shallow alignment) | Wei et al.'s `refusal_suppression` + `prefix_injection` combination, verbatim | Wei et al., 2023; Qi et al., 2024 |
-| A5′ | GCG adversarial suffix (Tier 2) | Optimisation against the weights | `nanoGCG` on 1.5B, then a transfer test to 7B | Zou et al., 2023 |
+| A1 | Direct injection: DAN persona (15) | Competing objectives: the persona instruction against the safety objective | A DAN prompt copied verbatim from the `verazuo/jailbreak_llms` dataset, with its row ID | Shen et al., CCS 2024; slide 15 |
+| A2 | Alignment exploitation: hypothetical / nested fiction framing (19). This is the handout's "meta prompt" | Competing objectives plus distraction: the harm is moved into layers of fiction | The DeepInception template from the authors' repo, verbatim | Li et al., 2023; slide 19 |
+| A3 | Multi-shot learning jailbreak (23–24). This is the handout's "few shot" | In-context override: the demonstrated behaviour beats the post-training prior | Faux dialogues built by template (below) at k ∈ {4, 16, 64} shots | Anil et al., 2024; slides 23–24 |
+| A4 | Transformation-based injection: cipher / encoding (14, 27) | Mismatched generalisation: safety training doesn't cover the encoded input | Wei et al.'s `base64_input_only` format | Wei et al., NeurIPS 2023; Yuan et al. (CipherChat), slide 27 |
+| A5 | Prefix prompt injection (13–14), combined with refusal suppression | Competing objectives working on the first tokens (shallow alignment) | Wei et al.'s `refusal_suppression` + `prefix_injection` combination, verbatim | Wei et al., 2023; Qi et al., 2024; slides 13–14 |
+| A5′ | Adversarial suffix / GCG (25), Tier 2 | Optimisation against the weights | `nanoGCG` on 1.5B, then a transfer test to 7B | Zou et al., 2023; slide 25 |
+
+**Why base64 rather than the slide's Zulu or Caesar examples.** Base64 is self-contained, so no
+third-party translation API sits in the loop, and both the input and the output can be checked
+without help. The low-resource-language route needs a translation service in both directions,
+and its output can't be labelled without one.
+
+**Lecture categories not used, and why.** Socratic questioning and the conversational attacks
+(20–22, 28) are multi-turn, and their success depends on the attacker adapting to each reply. A
+fixed template can't reproduce that, so they'd be scored unfairly. Invisible and indirect
+injection (16, 26, 38) target an agent or app that reads untrusted data, and a bare chat model
+has no such channel. System override (15) and academic framing (17–18) are close cousins of A1
+and A2, so they're held as substitutes if an attack has to be swapped.
+
+**The handout's "indirect".** The handout lists "indirect" as an example type. In the deck,
+"indirect" means instructions smuggled in through data (16, 38). A4 is the nearest in-scope
+analogue, and the report says that A4 is not data-channel injection.
 
 **A3 shot content (safety constraint).** The shots don't contain real harmful answers. Each one
 pairs a *different* JBB behaviour with a short, templated compliant opening ("Sure, here is
@@ -291,8 +317,7 @@ and the recorded AI rounds.
 
 ## 12. Open questions for the user
 
-1. **The deck.** Drop it in `HW4/`. §3 is locked after reading it.
-2. **Llama Guard access.** Request it now (for the Tier 2 defence check), or drop that extra?
+1. **Llama Guard access.** Request it now (for the Tier 2 defence check), or drop that extra?
 
 ## 13. References
 
@@ -303,4 +328,5 @@ al., *DeepInception* (2023). Chao et al., *PAIR* (2023). Yong, Menghini, Bach, *
 Languages Jailbreak GPT-4* (2023). Mazeika et al., *HarmBench* (ICML 2024). Chao et al.,
 *JailbreakBench* (NeurIPS 2024 D&B). Qi et al., *Safety Alignment Should Be Made More Than Just
 a Few Tokens Deep* (2024). Inan et al., *Llama Guard* (2023). Qwen Team, *Qwen2.5 Technical
-Report* (2024). Oct 1 lecture deck (pending).
+Report* (2024). Liu, *Safety and Security of LLMs and Agentic AI Agents*, CS 6220 lecture slides, Oct 1 2026.
+Yuan et al., *GPT-4 Is Too Smart To Be Safe: Stealthy Chat with LLMs via Cipher* (ICLR 2024).

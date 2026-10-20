@@ -19,3 +19,5 @@ report/.report-print.html
 2026-ProgrammingHW-4.pdf
 # raw session-log dump used to curate src/prompts.py
 prompts-raw.md
+# lecture deck, instructor material
+12.AIAgent-safety-part1-attack.pdf

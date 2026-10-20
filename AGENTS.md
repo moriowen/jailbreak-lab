@@ -38,8 +38,10 @@ adapted, not rewritten.
   on ICE are reused.
 - **Judge: `cais/HarmBench-Llama-2-13b-cls`** (user, Oct 20). Llama Guard is Tier 2 only, as an
   input-filter defence check.
-- **Attack types come from the Oct 1 lecture deck.** The user is providing the PDF. Until it
-  arrives, the mapping in PLAN §3 is provisional and cites published taxonomies.
+- **Attack types come from the Oct 1 lecture deck** (`12.AIAgent-safety-part1-attack.pdf`,
+  gitignored as instructor material). PLAN §3 maps A1–A5 to its slides. The multi-turn
+  attacks (Socratic questioning, the conversational attacks) and the data-channel injections
+  are out of scope, for the reasons given there.
 - **Handout anomalies, recorded rather than resolved silently.** D7 says "hands-on experience
   with supervised finetuning", which was copied from HW3 and is read as "with jailbreak
   attacks". The naming line says "Reading HW should start with HW4_P_…" on a programming
