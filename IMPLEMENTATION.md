@@ -57,3 +57,16 @@ python -m src.stats && python -m src.understand
 ### Oct 20: Tier 0 built, smoke submitted
 - Data layer verified locally (render checks pass). Models prefetched on ICE.
 - Smoke job `6422406` submitted; GPU queue congested (pending on Priority). Grid waits on smoke.
+
+### Oct 20 (cont.): smoke passed, full grid launched
+- **Smoke `6422646` passed.** run.py works (direct + A1 on jbb-000 both refused — the control
+  baseline we want). `check_judge` PASS: canned refusals -> complied=0, benign answer -> 1.
+- **Env incident (fixed).** `pip install nanogcg` into the shared `HW3/.venv-ice` pulled
+  transformers down to 4.47 and broke its import (`ResolvedRevision`), which also breaks the
+  KV-reuse project that shares this venv. Restored transformers==5.19.0 + huggingface_hub>=1.3
+  + accelerate==1.15.0 and uninstalled nanogcg. **Rule: never install into the shared venv.**
+- **GCG deferred.** nanogcg pins `transformers<=4.47.1`, irreconcilable with the shared 5.19.
+  It needs its own isolated venv. Since GCG is the first Tier-2 item to cut, it waits until the
+  graded core is done; build `.venv-gcg` in a CPU batch job only if time remains.
+- **Launched:** main grid array `6422799` (0-15), SmolLM2 appendix `6422997` (0-7), judge
+  `6422998` (dependency afterok on both). All pending on the H100 queue.
