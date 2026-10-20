@@ -1,0 +1,21 @@
+.venv/
+.venv-ice/
+__pycache__/
+slurm/logs/
+.DS_Store
+.env*
+
+# raw model outputs: full jailbreak payloads stay off git (report shows redacted snippets only)
+results/gen_*
+results/judge_*
+results/*smoke*
+
+# build output
+*.pdf
+*.zip
+report/.report-print.html
+
+# instructor course material, not mine to redistribute
+2026-ProgrammingHW-4.pdf
+# raw session-log dump used to curate src/prompts.py
+prompts-raw.md
