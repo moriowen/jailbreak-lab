@@ -1,0 +1,7 @@
+# HW4 reuses the HW3 .venv-ice already on PACE scratch (these are the versions it carries).
+# Listed for reproducibility; the attack/judge code needs only torch, transformers, scipy.
+torch==2.14.1
+transformers==5.19.0
+accelerate==1.15.0
+scipy==1.17.1
+huggingface-hub
