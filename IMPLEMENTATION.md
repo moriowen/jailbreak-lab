@@ -110,3 +110,14 @@ python -m src.stats && python -m src.understand
   it. Not yet checked against Xie et al. 2023 Fig. 2.
 - **Still the user's:** review the 120 labels (`python -m src.label --review`), write every 4b
   placeholder (yellow in the PDF) and the Q6 critique table.
+
+### Oct 22 (night): Part 2 runs landed; site live
+- H100 queue stalled (fair-share 0); user approved any of H100/H200/A100-80GB/L40S. Sizes 6482813,
+  self-reminder 6482814, guard 6482815, judge 6482816 all COMPLETED (new runs on L40S).
+- **S5:** echo-corrected A5 0.36/0.64/0.68/0.86/0.98 over 0.5B..14B; A1 0.00 at 14B (refuses outright);
+  A2 peaks 3B (0.84); 0.5B also echoes on A3. Q5/Q7 rewritten: size trend is attack-specific.
+- **S7:** self-reminder cuts A1/A2 (7B A2 0.68→0.14), not A5 (0.86→0.82); Qwen3Guard input flags every
+  attack prompt except base64 (0/5); output filter alone misses 8% of A2.
+- **Site:** public/ via src/build_site.py, deployed to https://jailbreak-lab-lilac.vercel.app (Vercel
+  project jailbreak-lab; jailbreak-lab.vercel.app belongs to someone else). Report cover links site + repo.
+- PDF 23 pages. Remaining for the user: review labels, write 4b placeholders + Q6 table, STUDENT_ID build, package.
