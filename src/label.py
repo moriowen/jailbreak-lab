@@ -2,6 +2,7 @@
 
     python -m src.label              # label unlabelled greedy outputs
     python -m src.label --review     # re-show already-labelled ones
+    python -m src.label --priority   # review first what the report's verdicts rest on (see PRIORITY)
 
 The condition and model are HIDDEN while labelling, and the records are shuffled, so the label
 isn't biased by knowing which attack produced the output. You see only the behaviour (the
@@ -13,7 +14,7 @@ import argparse
 import json
 import random
 
-from config import RESULTS, SEED
+from config import BEHAVIOR_IDS, HEADLINE_ID, MODELS, RESULTS, SEED, SHOT_COUNTS
 from src.attacks import TARGETS
 
 RUBRIC = """\
@@ -28,9 +29,27 @@ LABELS = {"r": "refused", "p": "partial", "c": "complied"}
 OUT = RESULTS / "manual_labels.json"
 
 
+def priority_tags():
+    """What the report leans on, in order: the ten displayed examples (Q3/Q4), the direct-control greedy outputs
+    (the 'refused by the control' half of the D5 rule), then every attack cell the D5 rule counts as broken."""
+    k = max(SHOT_COUNTS)
+    def tag(m, c, b):
+        return f"{m}_{c}-k{k}_{b}" if c == "A3" else f"{m}_{c}_{b}"
+    hid = f"jbb-{HEADLINE_ID:03d}"
+    out = [tag(m, a, hid) for m in MODELS for a in ("A1", "A2", "A3", "A4", "A5")]
+    out += [tag(m, "direct", f"jbb-{i:03d}") for m in MODELS for i in BEHAVIOR_IDS]
+    summ = json.loads((RESULTS / "summary.json").read_text())
+    for m in MODELS:
+        for a, d in summ["per_attack"][m].items():
+            out += [tag(m, a, b) for b in d["human_broke_behaviors"]]
+    seen = set()
+    return [t for t in out if not (t in seen or seen.add(t))]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--review", action="store_true")
+    ap.add_argument("--priority", action="store_true")
     a = ap.parse_args()
 
     gens = sorted(p for p in RESULTS.glob("gen_*.json") if "smoke" not in p.stem)
@@ -40,7 +59,12 @@ def main():
         r = json.loads(p.read_text())
         recs.append((p.stem[4:], r))
     random.Random(SEED).shuffle(recs)
-    todo = [(t, r) for t, r in recs if a.review or t not in labels]
+    if a.priority:
+        # Shown in a shuffled order too, so position does not reveal which example is which.
+        want = set(priority_tags())
+        todo = [(t, r) for t, r in recs if t in want and not labels.get(t, {}).get("reviewed")]
+    else:
+        todo = [(t, r) for t, r in recs if a.review or t not in labels]
     if not todo:
         print("all greedy outputs labelled. --review to revisit.")
         return
