@@ -104,6 +104,7 @@ def data():
                              points=[{k: p[k] for k in ("model", "cond", "bid", "p_ref", "asr")} for p in s3["points"]]),
         s4=P2["s4"], s5=P2["s5"], s6=P2["s6"], s7=P2["s7"], s9=P2["s9"],
         kappa=S["agreement"].get("cohen_kappa", 0),
+        kappa_rev=S["agreement"]["reviewed"],
         a3=dict(raw=f"{a3[sm][0]}/50 vs {a3[lg][0]}/50 (Fisher p = {a3['fisher_p']:.1g})",
                 fixed=f"{a3['ex_echo'][sm]}/50 vs {a3['ex_echo'][lg]}/50 (p = {a3['ex_echo']['fisher_p']:.2f})"),
         a3curve=curve, echo_example=ex,

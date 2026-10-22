@@ -185,7 +185,14 @@ def main():
     # judge-vs-assistant, not judge-vs-human. Flag it loudly.
     summary["agreement"]["all_reviewed"] = (n_lab > 0 and n_reviewed == n_lab)
     summary["agreement"]["kappa_is"] = ("judge-vs-human" if n_lab and n_reviewed == n_lab
+                                        else f"{n_reviewed} of {n_lab} labels human-reviewed" if n_reviewed
                                         else "judge-vs-assistant (labels UNREVIEWED)")
+    # The reviewed subset alone is the real judge-vs-human check; also count where the human
+    # overruled the assistant's proposal.
+    rev = [(judge[t]["greedy_complied"], int(v["label"] == "complied"))
+           for t, v in labels.items() if v.get("reviewed") and t in judge]
+    summary["agreement"]["reviewed"] = {**cohen_kappa(rev), "changed": sum(
+        1 for v in labels.values() if v.get("reviewed") and v.get("assistant_label", v["label"]) != v["label"])}
 
     (RESULTS / "summary.json").write_text(json.dumps(summary, indent=2))
     print_summary(summary)

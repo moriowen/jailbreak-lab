@@ -32,6 +32,7 @@ caption { caption-side: top; text-align: left; font-size: 8.6pt; font-weight: 60
 blockquote { margin: 2pt 0 5pt 0; padding: 3pt 7pt; border-left: 2.5pt solid #888; background: #f4f4f2;
              font-family: Menlo, Consolas, monospace; font-size: 8.4pt; white-space: pre-wrap; }
 figure { margin: 4pt 0 8pt; break-inside: avoid; }
+blockquote { break-inside: avoid; }
 figcaption { font-size: 8.6pt; color: #333; margin-top: 2pt; }
 .cover { border: 1pt solid #222; padding: 8pt 10pt; margin-bottom: 8pt; }
 .cover p { margin: 0 0 2pt; }

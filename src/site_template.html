@@ -260,7 +260,7 @@ pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-
   <h2>Can the judge be trusted?</h2>
   <p class="claim">On clear refusals and clear compliance the judge agrees with a hand reading. It disagrees on "partial" outputs, which go along with the request but carry little content.</p>
   <div class="card"><div class="ctitle">Judge verdict on the greedy output, by hand label</div><div class="csub">Cells: judge said "yes" / outputs with that label. Both models.</div><div class="tscroll" id="t-judge"></div></div>
-  <p class="small">The hand labels were proposed by the AI assistant and are being reviewed by me; until then this compares the judge with a second model's reading. Cohen's κ = <span data-v="D.kappa.toFixed(2)"></span>.</p>
+  <p class="small">The hand labels were proposed by the AI assistant; I reviewed blind the <span data-v="D.kappa_rev.n"></span> that the verdicts rest on. Cohen's κ = <span data-v="D.kappa_rev.cohen_kappa.toFixed(2)"></span> on those, <span data-v="D.kappa.toFixed(2)"></span> over all labels.</p>
 </section>
 
 <section id="echo">

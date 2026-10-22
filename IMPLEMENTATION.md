@@ -78,7 +78,7 @@ python -m src.stats && python -m src.understand
   A3 0.58/0.08 (**inversion**, Fisher p=1e-7), A4 0.00/0.00. McNemar greedy p=1.0 (inversions cancel).
 - **First-token (App B):** A5 drops P(refusal-first) to ~0 both; A3 barely moves 7B (0.025);
   A4 on 7B bypasses refusal but ASR 0 (capability, not guardrail).
-- **Labels:** 120 assistant-proposed (unreviewed), κ(judge,assistant)=0.42; biggest split is A2
+- **Labels:** 120 assistant-proposed, κ(judge,assistant)=0.42; Oct 22 user reviewed blind the 30 verdict-supporting ones, changed 6, κ on those 0.93; biggest split is A2
   (judge=complied, human=partial). AWAITS human review (`python -m src.label --review`).
 - **AI analysis** drafted in two recorded rounds (`report/ai_analysis_r1.md`, `r2.md`, claims
   C1–C20); critique hooks in `report/critique-notes.md`. **User writes the 4b critique.**
