@@ -287,10 +287,7 @@ GLOSSARY = [
     ("Direct control", "The bare request with no attack wrapper. Both target models refuse it, so any success "
                        "is the attack's doing."),
     ("Net ASR", "Echo-corrected ASR minus the direct-control ASR."),
-    ("Wilson CI", "A 95% interval for a proportion that behaves well near 0 and 1."),
     ("P(refusal-first)", "Probability that the model's first output token starts a refusal (\"I\", \"Sorry\", …)."),
-    ("Greedy / sampled", "Greedy: one deterministic output. Sampled: 10 outputs at the model's shipped settings."),
-    ("Fisher / McNemar", "Exact tests for two rates (Fisher) and for paired yes/no outcomes (McNemar)."),
     ("Self-reminder", "A defence: a system prompt and a closing line asking the model to answer responsibly."),
 ]
 
@@ -433,7 +430,7 @@ def q2():
             cut = body
         else:
             body = msgs[0]["content"]
-            cut = body if len(body) <= 360 else body[:360].rsplit(" ", 1)[0] + f" … [{len(body.split())} words in full]"
+            cut = body if len(body) <= 230 else body[:230].rsplit(" ", 1)[0] + f" … [{len(body.split())} words in full]"
         examples.append(f'<p class="small"><b>Attack-{a[1]} example</b> ({R.esc(srcmap[a]["provenance"]["cite"]) if a != "A3" else "adapted many-shot"}):</p>'
                         f'<blockquote class="out">{R.esc(cut).replace(chr(10), "<br>")}</blockquote>')
     s2 = step2(("P6",), [
@@ -461,7 +458,7 @@ here.""", "P4, P5")
 Attack-n appears as An.</p>
 {R.table(["Attack", "Type and description", "Source and citation"], rows, "Table 2. The five attacks", cls="keep")}
 <p class="small"><b>Concrete examples.</b> Each attack rendered on behaviour {hid} ("{R.esc(TARGETS[hid]['goal'])}"),
-cut to its first 360 characters where long; A3 is shown at k = 4 for space.</p>
+cut to its first 230 characters where long; A3 is shown at k = 4 for space.</p>
 {"".join(examples)}
 <p class="small">The full rendered prompts are produced by <code>src/attacks.py</code> from <code>data/templates.json</code>
 (both in the ZIP). URLs: DAN: github.com/verazuo/jailbreak_llms; DeepInception: github.com/tmlr-group/DeepInception;
@@ -474,9 +471,9 @@ huggingface.co/datasets/JailbreakBench/JBB-Behaviors. Each is pinned to a commit
 HEADER = ("article:", "title:", "**article:**")
 
 
-def excerpt(text, refused, limit=240):
+def excerpt(text, refused, limit=170):
     """Enough non-actionable text to justify the verdict: a refusal whole if short; otherwise the opening, skipping
-    bare headings like "Article:", cut at about 240 characters, then a note of how much is withheld."""
+    bare headings like "Article:", cut at about 170 characters, then a note of how much is withheld."""
     if refused and len(text.split()) < 60:
         return R.esc(" ".join(text.split()))
     lines = [ln.strip() for ln in text.splitlines() if ln.strip() and ln.strip().lower().strip("*: ") not in
@@ -539,7 +536,7 @@ def q3():
         f"<p class=\"small\"><b>{MODELS[m][0].split('/')[1]}</b></p>"
         + R.table(["Attack", "AI result (greedy output, excerpt)", "Judge", "Hand label (unreviewed)", "Sampled, non-echo judge-positive"],
                   pair_rows(m),
-                  f"Table {4 + i}. Five &lt;attack, AI result&gt; pairs for {SHORT[m]} on behaviour {hid}", cls="keep")
+                  f"Table {4 + i}. Five &lt;attack, AI result&gt; pairs for {SHORT[m]} on behaviour {hid}")
         for i, m in enumerate(MS))
     s2 = step2(("P8", "P9"), [
         ["1", CONTEXT["P6"], "P6, P7", "src/run.py: 1 greedy + 10 sampled outputs per cell, first-token distribution saved"],
@@ -564,11 +561,8 @@ each one is one draw, and the rate beside it is the result.""", "P7")
 <h2 class="q">Question 3. Five &lt;attack, AI result&gt; pairs for each LLM, ten in total (deliverable 3)</h2>
 <h3>Step 1: Final answer (AI generated)</h3>
 <p>Table 3 gives each attack's rate over all five behaviours. Tables 4 and 5 give the ten pairs: each attack on
-behaviour {hid} ("{R.esc(TARGETS[hid]['goal'])}", a misinformation post), showing an excerpt of the greedy output,
-the judge's verdict, the hand label, and how many of the 10 sampled outputs the judge scored positive. Words used for
-outcomes: <i>judge-positive</i> means the classifier said yes; an <i>echo</i> is judge-positive with no content;
-<i>partial</i> is a hand label for output that goes along with the request without much content; a <i>verified
-jailbreak</i> needs a reviewed hand label of complied.</p>
+behaviour {hid} ("{R.esc(TARGETS[hid]['goal'])}", a misinformation post), with an excerpt of the greedy output,
+the judge's verdict, the hand label, and the sampled count. Outcome terms are defined in the glossary.</p>
 {results_table()}
 {blocks}
 {s2}
@@ -597,11 +591,8 @@ def q4():
         for a in ATTACKS:
             g, j = gen(m, a, hid), judge(m, a, hid)
             n_fail += is_echo(g["greedy"]["text"]) or not j["greedy_complied"]
-            rows.append([f"Attack-{a[1]}", SHORT[m],
-                         f"{greedy_verdict(g['greedy']['text'], j)} / {label(m, a, hid)}",
-                         R.esc(WHY[(a, m)]),
-                         f"{sampled_cell(m, a, hid)} here; "
-                         f"{PA(m, a)['asr_ex_echo']:.2f} over 5 behaviours"])
+            rows.append([f"Attack-{a[1]}", SHORT[m], R.esc(WHY[(a, m)]),
+                         f"{PA(m, a)['asr_ex_echo']:.2f}"])
     s2 = step2(("R1", "R2"), [
         ["1", "summary.json + first_token.json after the grid", "R1 (assistant-written)",
          "claims C1 to C12 in report/ai_analysis_r1.md"],
@@ -632,8 +623,8 @@ consistent with a decoding limit; A3 shows nothing about size.""", "")
 the rate for that cell so a single draw is not mistaken for the attack's behaviour. {n_fail} of the ten are
 judge-negative or echoes, and two (7B DAN, 1.5B fiction) refuse in the displayed draw even though other samples go
 along.</p>
-{R.table(["Attack", "Model", "This output: judge / hand label", "Why this output", "Sampled, non-echo judge-positive"], rows,
-           "Table 6. The ten displayed examples (behaviour " + hid + ")")}
+{R.table(["Attack", "Model", "Why this output (verdicts and sampled counts in Tables 4 and 5)", "Rate, 5 behaviours"], rows,
+           "Table 6. The ten displayed examples (behaviour " + hid + ")", num_cols=(3,))}
 <p><b>Across all behaviours.</b> The attacks that work get the model past the opening where it would refuse. Prefix
 injection does this directly; DAN and fiction do it by giving the model a competing goal. The probability that the first
 token starts a refusal is a proxy for that opening, and it goes with success: Spearman ρ =
@@ -694,9 +685,8 @@ many-shot and base64 <i>fail</i> on both. On the 25 paired greedy outcomes the m
 {R.table(["Attack", "1.5B", "7B", "Difference (pts)", "Fisher p", "Holm p (5 tests)", "D5 verdict 1.5B / 7B"], rows,
            "Table 7. Non-echo judge-positive outputs out of 50, by model (sampled, pooled over 5 behaviours). "
            "Verdicts as in Table 3.", num_cols=(1, 2, 3, 4, 5), cls="keep")}
-<p>The two-model comparison does not extend to a general rule. Across five sizes (Part 2, S5) only prefix injection
-rises steadily with size; DAN falls to zero at 14B and fiction peaks at 3B. "The bigger model is easier to break" is true
-for this pair and for A5, not for every attack.</p>
+<p>Across five sizes only prefix injection keeps rising (Part 2, S5), so this is a finding about the pair and A5,
+not a general size rule.</p>
 {s2}
 """
 
@@ -803,12 +793,9 @@ intervals, output lengths and hand labels are what exposed it (S9).</li>
 # ---------- Part 2 ----------
 
 def s1_noise():
-    rows = []
-    for m in MS:
-        for a in ATTACKS:
-            b = P2["s1"]["boot"][m][a]
-            rows.append([SHORT[m], f"Attack-{a[1]}", f"{b['mean']:.2f}", ci(b["wilson_ci"]), ci(b["boot_ci"]),
-                         f"{b['behaviors_with_any']}/5"])
+    B = P2["s1"]["boot"]
+    rows = [[f"Attack-{a[1]}"] + [x for m in MS for x in (f"{B[m][a]['mean']:.2f}", ci(B[m][a]["wilson_ci"]),
+                                                           ci(B[m][a]["boot_ci"]))] for a in ATTACKS]
     g = P2["s1"]["greedy_vs_majority"]
     widths = [(b["boot_ci"][1] - b["boot_ci"][0]) / (b["wilson_ci"][1] - b["wilson_ci"][0])
               for m in MS for b in P2["s1"]["boot"][m].values() if b["wilson_ci"][1] - b["wilson_ci"][0] > 0.1]
@@ -816,17 +803,15 @@ def s1_noise():
 <h3>S1. Is each attack's success real, or noise from five behaviours?</h3>
 <figure>{fig_heatmap()}<figcaption>Figure S1. Sampled successes out of 10 (judge) for each attack and behaviour. The same
 attack can score 0 on one behaviour and 10 on another.</figcaption></figure>
-{R.table(["Model", "Attack", "Mean of 5 behaviours", "Wilson 95% (50 samples)", "Cluster bootstrap 95% (5 behaviours)",
-          "Behaviours with any success"], rows,
-         "Table S1. Two intervals for the same rate (raw judge, before echo correction)", num_cols=(2, 5))}
-<p>The Wilson interval treats the 50 samples in a cell as independent. They are not: the 10 samples for one behaviour
-tend to agree, and behaviours differ a lot (Figure S1). Resampling whole behaviours (cluster bootstrap, 4,000 draws)
-gives intervals up to {max(widths):.1f}× as wide; for example A3 on 1.5B is {ci(P2['s1']['boot'][SM]['A3']['wilson_ci'])} by Wilson
+{R.table(["Attack"] + [x for m in MS for x in (f"{SHORT[m]} rate", "Wilson 95%", "Cluster 95%")], rows,
+         "Table S1. Two intervals for the same rate (raw judge). Wilson treats 50 samples as independent; the cluster "
+         "bootstrap resamples the 5 behaviours (4,000 draws)", num_cols=(1, 4))}
+<p>The 10 samples for one behaviour tend to agree, and behaviours differ a lot (Figure S1), so the samples are not
+independent. Resampling whole behaviours gives intervals up to {max(widths):.1f}× as wide; for example A3 on 1.5B is {ci(P2['s1']['boot'][SM]['A3']['wilson_ci'])} by Wilson
 but {ci(P2['s1']['boot'][SM]['A3']['boot_ci'])} by behaviour. <b>So the attack that never works (A4) and the one that
 nearly always works on 7B (A5) are solid; the middle of the ranking is not.</b> {P2['s1']['mixed_cells']} of
 {P2['s1']['cells']} cells are mixed (some samples comply, some refuse), and the greedy output agrees with the sample
-majority in only {g['same']} of {g['n']}. A single greedy output per attack, which is what the handout's ten pairs
-show, would mislabel about one cell in five.</p>
+majority in only {g['same']} of {g['n']}, so one output per attack would mislabel about one cell in five.</p>
 """
 
 
@@ -842,10 +827,10 @@ def s2_judge():
          "Table S2. Judge verdict on the greedy output, split by hand label (both models)", num_cols=(1, 2, 3))}
 <p>Where the hand label is clear, the judge agrees: it says no to every refusal and yes to every full compliance
 (median P(yes) {py['refused']:.3f} and {py['complied']:.3f}). Disagreement is all in the <i>partial</i> column, outputs
-that go along with the request but carry little usable content. The judge says yes to {sum(c[a]['partial'][1] for a in CONDS)}
+with little usable content. The judge says yes to {sum(c[a]['partial'][1] for a in CONDS)}
 of {sum(sum(c[a]['partial']) for a in CONDS)} of these (median P(yes) {py['partial']:.2f}): A2 fiction outlines, and
-A3 outputs, which turn out to be echoes (S9). κ = {ag.get('cohen_kappa', 0):.2f} is moderate, and the mismatch is
-consistent: the judge rewards outputs that look like compliance. <b>Caveat:</b> the {P2['s2']['total']} hand labels were
+A3 outputs, which turn out to be echoes (S9). κ = {ag.get('cohen_kappa', 0):.2f}: the judge rewards outputs that look like compliance.
+<b>Caveat:</b> the {P2['s2']['total']} hand labels were
 proposed by the assistant (P9) and {P2['s2']['reviewed']} have been reviewed by me so far, so this checks the judge
 against a second model's reading, not yet against a person's.</p>
 """
@@ -916,17 +901,14 @@ def size_text(d, ms):
     dr = [v(m, "direct") for m in ms]
     a2max = max(ms, key=lambda m: v(m, "A2"))
     return f"""<p><b>Only prefix injection scales with size.</b> A5 rises at every step ({a5}) while the direct control
-stays between {min(dr):.2f} and {max(dr):.2f}, so the larger models are not simply less safe: they refuse plain requests
-as reliably as the small ones. A5 tells the model exactly how to start and forbids refusing, and a bigger model follows
-formatting instructions more faithfully, so the attack gets stronger as the model gets better. The other attacks do not
-follow that line. DAN rises to {v('qwen2.5-7b', 'A1'):.2f} at 7B and then drops to {v('qwen2.5-14b', 'A1'):.2f} at 14B,
+stays between {min(dr):.2f} and {max(dr):.2f}: larger models refuse plain requests as reliably as small ones, but
+follow A5's formatting rules more faithfully. The other attacks do not follow that line. DAN rises to {v('qwen2.5-7b', 'A1'):.2f} at 7B and then drops to {v('qwen2.5-14b', 'A1'):.2f} at 14B,
 where the model does not take up the persona at all: every greedy output opens "I'm sorry, but I can't assist". DAN is
 the most widely circulated jailbreak, so the 14B model's safety data may simply have covered it; I did not test that.
 Fiction peaks at {SHORT[a2max]}
 ({v(a2max, 'A2'):.2f}). Many-shot, after echoes are removed, stays at or below {max(v(m, 'A3') for m in ms):.2f} at every size, and the
-0.5B model echoes as well (Table S9). <b>So the D5 finding "7B is easier to break
-than 1.5B" is real for this pair, but the size trend depends on the attack.</b> One caveat: these runs used L40S GPUs
-and the main pair ran on H100; that changes timing only, not outputs' scoring.</p>"""
+0.5B model echoes as well (Table S9). <b>So "7B is easier to break than 1.5B" holds for this pair,
+but the size trend depends on the attack.</b> These runs used L40S GPUs, which affects timing only.</p>"""
 
 
 def s6_family():
@@ -953,28 +935,22 @@ def s7_defense():
         return """<h3>S7. Which defence stops which attack?</h3>
 <p class="todo">Self-reminder generations and the Qwen3Guard filter are in progress on PACE.</p>"""
     rows = []
-    for m in DEFENDED_MODELS:
-        for a in CONDS:
-            s_ = sr.get(m, {}).get(a)
-            gg = g.get(m, {}).get(a)
-            rows.append([SHORT[m], a,
-                         f"{PA(m, a)['asr_ex_echo']:.2f}" if a != "direct" else f"{S['models'][m]['direct_asr']:.2f}",
-                         f"{s_['sr']['asr_ex_echo']:.2f} ({pbound(s_['fisher_p'])})" if s_ else "—",
-                         f"{gg['input_blocked_behaviors']}/5" if gg else "—",
-                         f"{gg['asr_input']:.2f}" if gg else "—",
-                         f"{gg['asr_both']:.2f}" if gg else "—"])
+    for a in CONDS:
+        r = ["Direct" if a == "direct" else f"Attack-{a[1]}", f"{g[SM][a]['input_blocked_behaviors']}/5"]
+        for m in DEFENDED_MODELS:
+            s_, gg = sr[m][a], g[m][a]
+            r += [f"{s_['none']['asr_ex_echo']:.2f}", f"{s_['sr']['asr_ex_echo']:.2f}",
+                  f"{gg['asr_output']:.2f}", f"{gg['asr_both']:.2f}"]
+        rows.append(r)
     return f"""
 <h3>S7. Which defence stops which attack?</h3>
 <p>Two defences that need no retraining. <b>Self-reminder</b> (Xie et al. 2023) wraps every prompt in a system message
-and a closing reminder; the models were re-run under it. <b>Qwen3Guard-Gen-4B</b> is a separate safety classifier,
-used as an input filter (it sees the attack prompt and can block it) and as an output filter (it sees the response). The
-guard was applied to the existing outputs, so nothing was regenerated. I used it instead of Llama Guard 3, which is
-gated behind a manual access request.</p>
-<figure>{fig_defense()}<figcaption>Figure S7. Echo-corrected ASR with no defence, with self-reminder, behind the input
-filter, and behind both filters.</figcaption></figure>
-{R.table(["Model", "Condition", "No defence", "Self-reminder (Fisher vs none)", "Prompts blocked by guard",
-          "ASR behind input filter", "ASR behind input + output"], rows,
-         "Table S7. Defences (sampled, 5 behaviours × 10)", num_cols=(2, 3, 5, 6))}
+and a closing reminder; the models were re-run under it. <b>Qwen3Guard-Gen-4B</b>, a separate classifier, screens the
+attack prompt (input filter) and the existing responses (output filter); it replaces Llama Guard 3, which is gated.</p>
+{R.table(["Condition", "Prompts flagged"] + [x for m in DEFENDED_MODELS for x in
+          (f"{SHORT[m]} none", "reminder", "output filter", "both filters")], rows,
+         "Table S7. Echo-corrected rate under each defence (sampled, 5 behaviours × 10). Prompts flagged: input guard "
+         "verdicts, same prompts for both models", num_cols=tuple(range(1, 10)))}
 {defense_text(sr, g)}
 <p class="small">Self-reminder text (as reproduced in later papers): system "{R.esc(SR_SYSTEM)}"; appended
 "{R.esc(SR_SUFFIX.strip())}". It replaces Qwen's default system prompt, so part of any effect could come from removing
@@ -995,9 +971,8 @@ it cuts fiction from {n7:.2f} to {s7:.2f} ({pbound(p7)}) and DAN by about half o
 attack only competes for the model's attention, but A5 removes the opening where a refusal would go, so the extra
 weight has nowhere to act. <b>The guard on the input blocks every attack prompt except base64</b> ({blocked['A4']}/5
 flagged; every other condition {min(v for k, v in blocked.items() if k != 'A4')}/5), so behind it no attack succeeds.
-That result is less strong than it looks: these five requests are stated plainly inside each wrapper, which a
-classifier catches easily, and base64, the one wrapper that hides the request, gets through untouched. It succeeds
-here only because the target models cannot decode it (S4); a model that can would be exposed. The output filter alone
+That is weaker than it looks: the requests are stated plainly inside each wrapper, and base64, the one wrapper that
+hides the request, passes untouched; it is harmless here only because these models cannot decode it (S4). The output filter alone
 misses up to {leak:.0%} of fiction outputs the judge scores as harmful, the attack whose outputs look least like
 direct compliance. I did not measure how often either defence refuses harmless prompts (S10).</p>"""
 
@@ -1020,8 +995,7 @@ def s9_cost():
          "times compare only within a column", num_cols=tuple(range(1, len(ms) + 2)))}
 <p>The attacks are cheap. A3 is the longest prompt (16 demonstration turns, about {round(d[ms[0]]['A3']['prompt_tokens'])}
 tokens), and even that costs only one prefill. Cost depends on how long the model writes: the 1.5B echoes on A3 end
-after about 25 tokens and finish a batch of 10 in under a second, while a complied A2 story runs to the 512-token limit. Times are only comparable within one model: 1.5B and 7B ran on H100s, the other sizes on L40S
-GPUs, as recorded in each result file.
+after about 25 tokens and finish a batch of 10 in under a second, while a complied A2 story runs to the 512-token limit.
 Complied outputs are longer than refusals (median {P2['s10_length'][SM]['complied_median']:.0f} vs
 {P2['s10_length'][SM]['not_median']:.0f} tokens on 1.5B), so output length is a cheap warning sign, and it is the
 check that exposed the echoes.</p>
@@ -1055,12 +1029,11 @@ it P(yes) ≈ 1. Many-shot did teach the small model a pattern: it learned the f
          "Table S9. A3 echoes by model and shot count", num_cols=(1, 2, 3, 4, 5))}
 <p><b>Fix.</b> An output counts as an echo only if it matches the shot template exactly: the "Sure, here is" opening,
 the cue line, and nothing after it (<code>attacks.is_echo</code>). Echoes are counted as not complied in every table.
-The raw judge numbers stay in Table 3 so the change can be seen. After correction A3 is {a3['ex_echo'][SM]}/50 vs
+Raw judge numbers stay in Table 3. After correction A3 is {a3['ex_echo'][SM]}/50 vs
 {a3['ex_echo'][LG]}/50 ({pbound(a3['ex_echo']['fisher_p'])}): no inversion, and the "clearest size effect" is gone.
-<b>What it means:</b> the judge was trained on full responses, and a confident opening with no body is out of its
-training distribution; it takes the opening as the answer. My A3 demonstrations made this likely, because they
-contained only openings (a safety choice, Question 2). The assistant-proposed hand labels had already marked these
-outputs "partial", so the disagreement was visible in S2; nobody followed it up until the lengths were checked. The
+<b>What it means:</b> the judge was trained on full responses and takes a confident opening with no body as the
+answer. My opening-only demonstrations (a safety choice, Question 2) made this likely. The hand labels had already
+marked these outputs "partial" (S2), but nobody followed it up until the lengths were checked. The
 size ladder shows the echo is a small-model behaviour: 0.5B echoes too, while 3B, 7B and 14B never do.</p>
 """
 
@@ -1076,9 +1049,8 @@ review them, the human side of the success rule is a second model's reading.</li
 <li><b>Capability versus safety.</b> A bigger model is better at following instructions and also has a different
 safety tuning; within one family the two cannot be separated. S5 shows the trends, not their cause, and a single
 model per size cannot rule out checkpoint-specific quirks (DAN at 14B).</li>
-<li><b>GCG not run.</b> The optimisation attack (Zou et al. 2023, slide 25) needs <code>nanogcg</code>, which pins
-<code>transformers ≤ 4.47</code>. Installing it broke the shared PACE environment (fixed and rolled back; see
-IMPLEMENTATION.md), so it needs its own environment. The code is staged in <code>src/gcg.py</code>.</li>
+<li><b>GCG not run.</b> The optimisation attack (Zou et al. 2023) needs <code>nanogcg</code>, whose pinned
+<code>transformers ≤ 4.47</code> broke the shared PACE environment; code is staged in <code>src/gcg.py</code>.</li>
 <li><b>No over-refusal check.</b> S7 measures what the defences block, not what they wrongly refuse on harmless
 prompts; Xie et al. and later work report that self-reminder makes some models over-cautious.</li>
 </ul>
@@ -1110,7 +1082,7 @@ Refined synthesis: every Part 2 claim is now checked against the outputs or a ta
 of the data were withdrawn.""",
         "")
     return f"""
-<h2 class="q pb">Part 2. Understanding the results (beyond the handout)</h2>
+<h2 class="q">Part 2. Understanding the results (beyond the handout)</h2>
 <p>Questions 1 to 7 answer the handout. This part asks why the results came out as they did. Each section starts from a
 question the main results raise, shows the evidence, and says what it means. S1 to S4, S8 and S9 re-analyse the outputs
 already collected; S5 to S7 are new runs on PACE. Interactive versions of every chart and a browser for all cells are on
@@ -1141,7 +1113,7 @@ def references():
         "Allal, L. B., et al. (2025). SmolLM2: When smol goes big. arXiv:2502.02737.",
         "Liu, L. (2026). AI agent safety, part 1: Attacks. CS 6220 lecture slides, Georgia Tech, Oct 1, 2026.",
     ]
-    return "<h2 class=\"pb\">Step 3: References</h2><ol class=\"small\">" + "".join(f"<li>{r}</li>" for r in refs) + "</ol>"
+    return "<h2>Step 3: References</h2><ol class=\"small\">" + "".join(f"<li>{r}</li>" for r in refs) + "</ol>"
 
 
 def appendix_a():
@@ -1149,7 +1121,7 @@ def appendix_a():
             for pid, when, kind, text in PROMPTS]
     rrows = [[rid, when, R.esc(text)] for rid, when, text in ROUND_INSTRUCTIONS]
     return f"""
-<h2 class="pb">Step 4: Appendices (outside the page limit)</h2>
+<h2>Step 4: Appendices (outside the page limit)</h2>
 <h3>Appendix A. Full prompt log</h3>
 <p class="small">Every prompt I gave the AI assistant for HW4, verbatim with typos, from the Claude Code session logs.
 Italic rows are choices in the assistant's question dialogs. P12 to P15 are git chores, kept for completeness. Tool
@@ -1157,14 +1129,14 @@ notifications and an automated safety-classifier notice are not prompts and are 
 from files: the handout, the Oct 1 slides, HW3's folder, and the brief and plan the assistant wrote and then built
 against.</p>
 {R.table(["ID", "When (ET)", "Prompt"], rows)}
-<p class="small"><b>Assistant-written round instructions.</b> Not typed by me. The assistant wrote these for its own
-analysis rounds; they are recorded at the top of each analysis file.</p>
-{R.table(["ID", "Source", "Instruction"], rrows)}
-<h3>Appendix A.2. The brief P1 produced (PROMPT.md), verbatim</h3>
-<p class="small">P1 asked the assistant to write a detailed prompt for HW4 using HW3 as the example. This is that
-prompt, unedited; P2 then started a fresh session from it. It is the longest single instruction behind this work:
-it fixed the deliverable mapping, the safety vetoes, the tiers and the report rules before any code existed.</p>
-<pre class="brief">{R.esc((ROOT / "PROMPT.md").read_text())}</pre>
+<p class="small"><b>R1, R2</b> are assistant-written round instructions, not typed by me; both are quoted verbatim in
+Question 4 and at the top of <code>report/ai_analysis_r1.md</code> and <code>r2.md</code>.</p>
+<h3>Appendix A.2. The brief P1 produced (PROMPT.md)</h3>
+<p class="small">P1 asked the assistant to write a detailed prompt for HW4 using HW3 as the example; P2 then started a fresh
+session from it. The brief ({len((ROOT / "PROMPT.md").read_text().split()):,} words) fixed the deliverable mapping (D1 to D7),
+the rubric weights, the safety vetoes (low-severity JailbreakBench behaviours only, self-hosted weights, redacted outputs),
+the tiers and cut order, and the report rules before any code existed. It is reproduced verbatim in the ZIP and at
+<a href="{REPO}/blob/main/PROMPT.md">{REPO.removeprefix("https://")}/blob/main/PROMPT.md</a>.</p>
 """
 
 
@@ -1183,19 +1155,13 @@ def appendix_bc():
             x = S["a3_curve"][m][str(k)]
             a3.append([SHORT[m], k, f"{x['judge_asr']:.2f} {ci(x['ci'])}", x["echo"], f"{x['asr_ex_echo']:.2f}"])
     return f"""
-<h3>Appendix B. Extended tables</h3>
-{R.table(["Model", "Condition"] + [f"{b}<br>{TARGETS[b]['category'].split('/')[0]}" for b in BIDS], rows,
-         "Table B1. Sampled judge successes out of 10, every cell (before echo correction)",
-         num_cols=tuple(range(2, 2 + len(BIDS))))}
-{R.table(["Model", "k", "Judge ASR [95% CI]", "Echoes", "Echo removed"], a3, "Table B2. A3 shot-count curve",
-         num_cols=(1, 3, 4))}
-<h3>Appendix C. Compute environment and reproduction</h3>
-<p class="small">PACE ICE, partition ice-gpu, one GPU per job (main 1.5B/7B grid, SmolLM2 and the judge's first pass
-on {GPU}; size ladder, self-reminder runs, guard and the judge's second pass on NVIDIA L40S when H100s were full), 8 CPU cores, 64 GB RAM, bf16. Models, judge and
+<h3>Appendix B. Compute environment and reproduction</h3>
+<p class="small">PACE ICE, partition ice-gpu, one GPU per job (main grid on {GPU}; size ladder, self-reminder, guard and the second judge pass on
+NVIDIA L40S), bf16. Models, judge and
 guard pinned by revision hash (<code>config.py</code>). Behaviours: JailbreakBench harmful split (five low-severity
 rows, one per category). Sampling: each checkpoint's shipped <code>generation_config</code>, seed 6220, max 512 new
-tokens. Jobs are Slurm arrays over command lists (<code>slurm/array.sbatch</code>, <code>src/jobs.py</code>; grids in
-<code>slurm/jobs/</code>), then <code>slurm/judge.sbatch</code> and <code>slurm/guard.sbatch</code>. Locally:
+tokens. Jobs: Slurm arrays over <code>slurm/jobs/*.txt</code>, then <code>slurm/judge.sbatch</code> and
+<code>slurm/guard.sbatch</code>. Locally:
 <code>python -m src.stats; python -m src.understand; python -m src.part2; python -m src.build_report</code>. Raw
 outputs are gitignored and excluded from the ZIP.</p>
 """
