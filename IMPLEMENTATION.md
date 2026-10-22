@@ -90,3 +90,23 @@ python -m src.stats && python -m src.understand
   ("Out-of-Place Publication"). Files are on disk; commit/push left for the user to approve.
 - **Remaining:** (1) user reviews labels; (2) user writes 4b critiques (placeholders marked);
   (3) `STUDENT_ID=… python -m src.build_pdf && … package`; (4) GCG still deferred (App E).
+
+### Oct 22 (evening): rebuilt in HW3's shape; A3 inversion retracted; Part 2 runs launched
+- **Trigger:** HW3 grader feedback ("Top submission… going above and beyond will make your work more
+  impressive"). Report rebuilt like HW3: Q1–Q7, Part 2 S1–S11, Appendix A verbatim prompt log
+  (`src/prompts.py`; R1/R2 marked assistant-written), B extended tables, C compute.
+- **Echo artefact (Part 2 S10).** 1.5B A3 outputs median 25 tokens = the shot template echoed, judge
+  p≈1. Echo-corrected A3: 1.5B 0/50 vs 7B 4/50 (Fisher p=0.12, was p=1e-7). `attacks.is_echo`,
+  `stats.echoes`; net ASR now echo-corrected. At a glance / Q4 / Q5 / Q7 rewritten.
+- **New analyses on existing data** (`src/part2.py` → `results/part2.json`): cluster bootstrap over
+  behaviours (intervals up to ~2.7× Wilson), judge-vs-label confusion, first-token vs ASR (ρ=-0.46),
+  A4 decode recall (~0.01–0.03), cost per condition, output length.
+- **PACE:** scratch was 99.6% full; user approved deleting `ollama-models` (46 GB) and the
+  Qwen3-30B-A3B FP8 cache (21 GB). 14B + Qwen3Guard downloaded via `slurm/download.sbatch` (a
+  login-node nohup download died with the SSH session). Jobs: sizes 6482568 (+6482707 for task 0,
+  which hit a bad node `atl1-1-03-013-3-0` with CUDA busy, and the 14B lines), self-reminder
+  6482569, guard 6482708, judge 6482709 (afterany).
+- **Self-reminder text** is the wording later papers reproduce; the authors' data repo doesn't ship
+  it. Not yet checked against Xie et al. 2023 Fig. 2.
+- **Still the user's:** review the 120 labels (`python -m src.label --review`), write every 4b
+  placeholder (yellow in the PDF) and the Q6 critique table.

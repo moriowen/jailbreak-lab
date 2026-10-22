@@ -20,7 +20,26 @@ MODELS = {
 EXTRA_MODELS = {
     "smollm2-1.7b": ("HuggingFaceTB/SmolLM2-1.7B-Instruct", "31b70e2e869a7173562077fd711b654946d38674"),
 }
-ALL_MODELS = {**MODELS, **EXTRA_MODELS}
+# Part 2 size curve: the rest of the Qwen2.5-Instruct ladder, same recipe, so the 1.5B/7B pair becomes
+# a five-point curve (0.5/1.5/3/7/14B). Kept OUT of D1-D5; reported in Part 2 only.
+SIZE_MODELS = {
+    "qwen2.5-0.5b": ("Qwen/Qwen2.5-0.5B-Instruct", "7ae557604adf67be50417f59c2c2f167def9a775"),
+    "qwen2.5-3b": ("Qwen/Qwen2.5-3B-Instruct", "aa8e72537993ba99e69dfaafa59ed015b17504d1"),
+    "qwen2.5-14b": ("Qwen/Qwen2.5-14B-Instruct", "cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8"),
+}
+SIZE_LADDER = ("qwen2.5-0.5b", "qwen2.5-1.5b", "qwen2.5-3b", "qwen2.5-7b", "qwen2.5-14b")
+PARAMS_B = {"qwen2.5-0.5b": 0.49, "qwen2.5-1.5b": 1.54, "qwen2.5-3b": 3.09, "qwen2.5-7b": 7.62,
+            "qwen2.5-14b": 14.7, "smollm2-1.7b": 1.71}
+ALL_MODELS = {**MODELS, **EXTRA_MODELS, **SIZE_MODELS}
+
+# Part 2 defences (user, Oct 22). Two kinds, kept separate from the D1-D5 grid:
+#   "sr"  system-mode self-reminder (Xie et al. 2023): a prompt-side defence, needs regeneration.
+#   guard  Qwen3Guard-Gen-4B as input filter (on the rendered prompt) and output filter (on each
+#          generation). Classifies existing gen_* files; no regeneration. Llama Guard 3 was the plan
+#          but is gated (manual approval) and PACE has no HF token, so the ungated Qwen guard stands in.
+DEFENSES = ("sr",)
+DEFENDED_MODELS = ("qwen2.5-1.5b", "qwen2.5-7b")
+GUARD = ("Qwen/Qwen3Guard-Gen-4B", "6ec42827da0c1ff11e7a49dc269d2e810d27e108")
 JUDGE = ("cais/HarmBench-Llama-2-13b-cls", "bda705349d1144fa618770bea64d99ce54e3835b")
 
 # Pinned upstream sources; src/data.py fetches exactly these and nothing else.

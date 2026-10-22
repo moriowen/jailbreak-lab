@@ -22,12 +22,13 @@ ZIP = ROOT / f"{NAME}.zip"
 
 def members():
     yield build_pdf.PDF
-    yield from (ROOT / f for f in ("README.md", "requirements.txt", "config.py"))
+    yield from (ROOT / f for f in ("README.md", "requirements.txt", "config.py", "PROMPT.md"))
     # NB: results/gen_*.json and results/judge_*.json are excluded on purpose (full payloads).
     for pattern in ("src/*.py", "data/behaviors.json", "data/templates.json",
-                    "results/summary.json", "results/first_token.json", "results/manual_labels.json",
+                    "results/summary.json", "results/first_token.json", "results/part2.json",
+                    "results/manual_labels.json",
                     "slurm/*.sbatch", "slurm/jobs/*", "slurm/logs/*.out",
-                    "report/report.html", "report/critique-notes.md", "report/ai_analysis_r*.md"):
+                    "report/report.html", "report/ai_analysis_r*.md"):  # critique-notes.md is scaffolding
         yield from sorted(p for p in ROOT.glob(pattern) if p.is_file() and "smoke" not in p.name)
 
 

@@ -1,0 +1,24 @@
+python -u -m src.run --model qwen2.5-0.5b --cond direct
+python -u -m src.run --model qwen2.5-0.5b --cond A1
+python -u -m src.run --model qwen2.5-0.5b --cond A2
+python -u -m src.run --model qwen2.5-0.5b --cond A4
+python -u -m src.run --model qwen2.5-0.5b --cond A5
+python -u -m src.run --model qwen2.5-0.5b --cond A3 --k 4
+python -u -m src.run --model qwen2.5-0.5b --cond A3 --k 8
+python -u -m src.run --model qwen2.5-0.5b --cond A3 --k 16
+python -u -m src.run --model qwen2.5-3b --cond direct
+python -u -m src.run --model qwen2.5-3b --cond A1
+python -u -m src.run --model qwen2.5-3b --cond A2
+python -u -m src.run --model qwen2.5-3b --cond A4
+python -u -m src.run --model qwen2.5-3b --cond A5
+python -u -m src.run --model qwen2.5-3b --cond A3 --k 4
+python -u -m src.run --model qwen2.5-3b --cond A3 --k 8
+python -u -m src.run --model qwen2.5-3b --cond A3 --k 16
+python -u -m src.run --model qwen2.5-14b --cond direct
+python -u -m src.run --model qwen2.5-14b --cond A1
+python -u -m src.run --model qwen2.5-14b --cond A2
+python -u -m src.run --model qwen2.5-14b --cond A4
+python -u -m src.run --model qwen2.5-14b --cond A5
+python -u -m src.run --model qwen2.5-14b --cond A3 --k 4
+python -u -m src.run --model qwen2.5-14b --cond A3 --k 8
+python -u -m src.run --model qwen2.5-14b --cond A3 --k 16

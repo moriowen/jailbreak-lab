@@ -33,6 +33,15 @@ adapted, not rewritten.
 
 ## Decisions
 
+- **Report follows HW3's shape** (user, Oct 22, after HW3 was graded "Top submission"): Questions
+  1–7, then Part 2 S1–S11, refs, Appendices A–C. Extras go in Part 2, not appendices.
+- **Echo-corrected ASR** (Oct 22). A3 outputs that only echo the shot template are scored as not
+  complied everywhere (`attacks.is_echo`); the D5 net-ASR term uses the corrected rate. Raw judge
+  ASR stays in Table 3 beside it. The earlier "A3 inversion" headline is retracted (Part 2 S10).
+- **Part 2 extras** (user, Oct 22): Qwen2.5 0.5B/3B/14B size ladder and two defences —
+  self-reminder (regenerated, `--defense sr`) and Qwen3Guard-Gen-4B input/output filter
+  (`src/guard.py`, post hoc). Llama Guard 3 dropped: gated, no HF token on PACE.
+
 - **Models: Qwen2.5-1.5B-Instruct and Qwen2.5-7B-Instruct** (user, Oct 20). Same family and
   training recipe, so size is the main variable. Ungated, and the HW3 `.venv-ice` and HF cache
   on ICE are reused.

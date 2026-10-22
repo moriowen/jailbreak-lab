@@ -1,0 +1,12 @@
+python -u -m src.run --model qwen2.5-1.5b --cond direct --defense sr
+python -u -m src.run --model qwen2.5-1.5b --cond A1 --defense sr
+python -u -m src.run --model qwen2.5-1.5b --cond A2 --defense sr
+python -u -m src.run --model qwen2.5-1.5b --cond A4 --defense sr
+python -u -m src.run --model qwen2.5-1.5b --cond A5 --defense sr
+python -u -m src.run --model qwen2.5-1.5b --cond A3 --k 16 --defense sr
+python -u -m src.run --model qwen2.5-7b --cond direct --defense sr
+python -u -m src.run --model qwen2.5-7b --cond A1 --defense sr
+python -u -m src.run --model qwen2.5-7b --cond A2 --defense sr
+python -u -m src.run --model qwen2.5-7b --cond A4 --defense sr
+python -u -m src.run --model qwen2.5-7b --cond A5 --defense sr
+python -u -m src.run --model qwen2.5-7b --cond A3 --k 16 --defense sr

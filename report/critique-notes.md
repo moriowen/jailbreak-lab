@@ -48,4 +48,13 @@ The AI already self-corrected several round-1 claims in round 2 (C13–C20). You
   attacks) and not (absolute ASR).
 - **Anything resting on one greedy output (C1, C5):** flag per C17 — cite the ASR+CI instead.
 
+## Added Oct 22 (echo artefact, Part 2 S10)
+
+- **C3 (A3 inversion) is a miscalculation, not just an overreach.** Every 1.5B A3 "success" at k=8/16
+  (and 21 of 29 at k=4) is the shot template echoed back with no content; the judge scores it p≈1.
+  Echo-corrected: 1.5B 0/50 vs 7B 4/50, Fisher p=0.12. The AI built a mechanism ("stronger prior resists
+  override") on top of a judge artefact without opening the outputs. The assistant-proposed labels had
+  already said "partial" — the disagreement was in S2 and nobody acted on it.
+- **Self-check on R2:** round 2 was asked to look for judge dependence and still missed this.
+
 Delete this file (or keep it untracked) before submitting; it is scaffolding, not a deliverable.

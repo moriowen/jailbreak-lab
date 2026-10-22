@@ -3,6 +3,7 @@
     python -m src.run --model qwen2.5-1.5b --cond direct
     python -m src.run --model qwen2.5-7b  --cond A3 --k 16
     python -m src.run --model qwen2.5-1.5b --cond A1 --smoke   # 1 behaviour, 2 samples
+    python -m src.run --model qwen2.5-7b  --cond A5 --defense sr   # Part 2 self-reminder
 
 One greedy pass plus N sampled passes at the checkpoint's shipped generation_config. Every
 record carries the model revision, the exact rendered prompt, sampling params, seed, timing,
@@ -60,8 +61,8 @@ def generate(tok, model, input_ids, n, seed, **kw):
     return texts, n_new, dt
 
 
-def run_cell(tok, model, sampled, model_key, hf_id, rev, cond, bid, k):
-    messages = attacks.render(cond, bid, k=k) if k else attacks.render(cond, bid)
+def run_cell(tok, model, sampled, model_key, hf_id, rev, cond, bid, k, defense=None):
+    messages = attacks.render(cond, bid, k=k or 16, defense=defense)
     ps = prompt_string(tok, messages)
     ids = tok(ps, return_tensors="pt").input_ids.to(model.device)
     greedy, g_new, g_dt = generate(tok, model, ids, 1, SEED, do_sample=False)
@@ -69,7 +70,7 @@ def run_cell(tok, model, sampled, model_key, hf_id, rev, cond, bid, k):
     samp, s_new, s_dt = generate(tok, model, ids, N_SAMPLES, SEED, **sampled)
     return {
         "model": model_key, "hf_id": hf_id, "revision": rev, "machine": MACHINE,
-        "condition": cond, "k": k, "behavior_id": bid,
+        "condition": cond, "k": k, "behavior_id": bid, "defense": defense,
         "messages": messages, "prompt_string": ps, "prompt_tokens": ids.shape[1],
         "sampling": {"greedy": {"do_sample": False}, "sampled": sampled, "seed": SEED,
                      "n_samples": N_SAMPLES, "max_new_tokens": MAX_NEW_TOKENS},
@@ -85,6 +86,7 @@ def main():
     ap.add_argument("--model", required=True, choices=list(ALL_MODELS))
     ap.add_argument("--cond", required=True, choices=list(attacks.ATTACKS))
     ap.add_argument("--k", type=int, default=None)
+    ap.add_argument("--defense", default=None, choices=list(attacks.DEFENCES))
     ap.add_argument("--smoke", action="store_true")
     a = ap.parse_args()
 
@@ -93,9 +95,9 @@ def main():
     bids = [f"jbb-{i:03d}" for i in BEHAVIOR_IDS]
     if a.smoke:
         bids = bids[:1]
-    tag = f"{a.cond}" + (f"-k{a.k}" if a.k else "")
+    tag = f"{a.cond}" + (f"-k{a.k}" if a.k else "") + (f"+{a.defense}" if a.defense else "")
     for bid in bids:
-        rec = run_cell(tok, model, sampled, a.model, hf_id, rev, a.cond, bid, a.k)
+        rec = run_cell(tok, model, sampled, a.model, hf_id, rev, a.cond, bid, a.k, a.defense)
         if a.smoke:
             rec["smoke"] = True
         path = RESULTS / f"gen_{a.model}_{tag}_{bid}{'_smoke' if a.smoke else ''}.json"
