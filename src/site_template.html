@@ -144,7 +144,7 @@ pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-
   <div class="eyebrow">Experiment write-up · jailbreak attacks on open LLMs</div>
   <h1>Telling the model how to start its answer beats every elaborate jailbreak</h1>
   <p class="lede">I ran five published jailbreak attacks against Qwen2.5-1.5B-Instruct and Qwen2.5-7B-Instruct, with a
-  direct-request control and 10 sampled outputs per attack and behaviour. Both models refuse the plain requests. The
+  direct-request control and 10 sampled outputs per attack and behaviour. Both models usually refuse the plain requests. The
   attack that forces a compliant opening and forbids refusals breaks the 7B model in
   <b data-v="pct(D.res.A5['qwen2.5-7b'].asr)"></b> of samples, and <b data-v="pct(D.s5['qwen2.5-14b'].A5.asr_ex_echo)"></b>
   at 14B. Across five model sizes it is the only attack that keeps getting stronger, and it is the one a safety reminder
@@ -161,7 +161,7 @@ pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-
 <section id="findings">
   <h2>What the experiment shows</h2>
   <ol class="findings">
-    <li><b>Refusal lives in the first few tokens.</b>The simplest attack, which dictates how the answer begins and bans apologies, is the strongest on both models. Across all cells, the lower the chance the first token starts a refusal, the higher the success rate. <a href="#why">Mechanism</a></li>
+    <li><b>The refusal opening is the weak point.</b>The simplest attack, which dictates how the answer begins and bans apologies, is the strongest on both models. Across all cells, the lower the chance the first token starts a refusal (a proxy for that opening), the higher the success rate. <a href="#why">Mechanism</a></li>
     <li><b>Size changes which attacks work.</b>Every working attack does better on 7B than on 1.5B, but across 0.5B to 14B only prefix injection keeps rising. DAN stops working entirely at 14B, and nested fiction peaks at 3B. <a href="#results">Results</a> · <a href="#sizes">Across sizes</a></li>
     <li><b>Base64 fails for a boring reason.</b>On 7B the attack gets past the refusal, but neither model can decode the request, so they answer a hallucinated one. Zero success here says nothing about safety. <a href="#base64">Evidence</a></li>
     <li><b>A trusted judge can be fooled by an echo.</b>On many-shot, the small model copies the demonstration's opening line and stops. The HarmBench classifier scores that as a full jailbreak, which produced a fake "size effect" with p &lt; 10⁻⁶. <a href="#echo">The story</a></li>
@@ -201,7 +201,7 @@ pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-
 
 <section id="why">
   <h2>Why the attacks that work, work</h2>
-  <p class="claim">When the first output token is unlikely to start a refusal, the model usually goes on to comply.</p>
+  <p class="claim">When the first output token is unlikely to start a refusal, the model usually goes on to comply. That fits, but does not prove, the idea that safety training mostly shapes how an answer begins.</p>
   <div class="two">
     <div class="card">
       <div class="ctitle">Refusal-first probability by condition</div>
@@ -210,13 +210,13 @@ pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-
       <div class="chart" id="c-ft"></div>
     </div>
     <div class="card">
-      <div class="ctitle">Refusal-first probability vs success, every cell</div>
+      <div class="ctitle">Refusal-first probability vs success (echoes removed), every cell</div>
       <div class="csub">Each point is one model × condition × behaviour. Hover for details.</div>
       <div class="legend" id="l-sc"></div>
       <div class="chart" id="c-sc"></div>
     </div>
   </div>
-  <p>This is the shallow-alignment picture (Qi et al. 2024): safety training mostly shapes how a response begins. Prefix injection removes that opening outright. DAN and nested fiction lower it by giving the model a competing goal. The exceptions are the <span data-v="D.s3.low_zero"></span> cells where the refusal is skipped and still nothing harmful comes out, all of them base64.</p>
+  <p>This is the shallow-alignment picture (Qi et al. 2024): safety training mostly shapes how a response begins. Prefix injection removes that opening outright. DAN and nested fiction lower it by giving the model a competing goal. The refusal-first probability is only a proxy: a token like "I" can open a compliant answer too. The exceptions are the <span data-v="D.s3.low_zero"></span> cells where the opening is skipped and still nothing harmful comes out: <span data-v="D.s3.low_zero_desc"></span>.</p>
 </section>
 
 <section id="base64">

@@ -146,6 +146,14 @@ def main():
         summary["cross_model"][atk] = {ms[0]: [k1, n1], ms[1]: [k2, n2], "fisher_p": pval,
                                        "ex_echo": {ms[0]: k1 - e1, ms[1]: k2 - e2, "fisher_p": pex}}
 
+    # Holm adjustment across the five per-attack Fisher tests (echo-corrected). The pooled Fisher test
+    # treats 50 samples as independent and ignores the shared behaviours, so these are exploratory.
+    order = sorted(ATTACKS, key=lambda a: summary["cross_model"][a]["ex_echo"]["fisher_p"])
+    run = 0.0
+    for i, atk in enumerate(order):
+        run = max(run, min(1.0, (len(order) - i) * summary["cross_model"][atk]["ex_echo"]["fisher_p"]))
+        summary["cross_model"][atk]["ex_echo"]["holm_p"] = run
+
     # McNemar on the 25 paired greedy outcomes (attack x behaviour), judge greedy labels
     b = c = n_pairs = 0
     for atk in ATTACKS:

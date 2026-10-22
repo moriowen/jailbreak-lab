@@ -118,11 +118,16 @@ def s3_first_token(models):
             for b in BIDS:
                 g, j = J("gen", tag(m, c, b)), J("judge", tag(m, c, b))
                 if g and j:
+                    real = sum(jj["complied"] and not is_echo(s["text"])
+                               for s, jj in zip(g["samples"], j["per_generation"][1:]))
                     pts.append({"model": m, "cond": c, "bid": b, "p_ref": p_refusal(g["first_token_topk"]),
-                                "asr": j["sampled_complied"] / j["sampled_n"]})
+                                "asr": real / j["sampled_n"],  # echo-corrected, as in every headline table
+                                "asr_raw": j["sampled_complied"] / j["sampled_n"]})
     rho, p = spearmanr([x["p_ref"] for x in pts], [x["asr"] for x in pts])
+    rho_raw, _ = spearmanr([x["p_ref"] for x in pts], [x["asr_raw"] for x in pts])
     low = [x for x in pts if x["p_ref"] < 0.1]
-    return {"points": pts, "spearman": rho, "p": p, "n": len(pts),
+    return {"points": pts, "spearman": rho, "p": p, "spearman_raw": rho_raw, "n": len(pts),
+            "low_pref_zero_by_cond": {c: sum(x["cond"] == c for x in low if x["asr"] == 0) for c in CONDS},
             "low_pref_n": len(low), "low_pref_zero_asr": sum(x["asr"] == 0 for x in low),
             "low_pref_zero_asr_conds": sorted({x["cond"] for x in low if x["asr"] == 0})}
 

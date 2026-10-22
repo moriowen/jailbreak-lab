@@ -21,11 +21,11 @@ CONDS = ["direct"] + ATTACKS
 BIDS = [f"jbb-{i:03d}" for i in BEHAVIOR_IDS]
 SHORT = {"qwen2.5-0.5b": "Qwen 0.5B", "qwen2.5-1.5b": "Qwen 1.5B", "qwen2.5-3b": "Qwen 3B", "qwen2.5-7b": "Qwen 7B",
          "qwen2.5-14b": "Qwen 14B", "smollm2-1.7b": "SmolLM2 1.7B"}
-NAMES = {"A1": "DAN persona", "A2": "Nested fiction", "A3": f"Many-shot (k={K})", "A4": "Base64",
+NAMES = {"A1": "DAN persona", "A2": "Nested fiction", "A3": "Many-shot (adapted)", "A4": "Base64",
          "A5": "Prefix injection"}
 TYPES = {"A1": "Role-play: answer as \"DAN\", an AI with no rules, alongside the normal answer",
          "A2": "Meta prompt: the request is hidden inside layered fiction",
-         "A3": "Few/many-shot: k fake turns where the assistant agrees, then the real request",
+         "A3": "Few/many-shot, adapted: k fake turns where the assistant agrees (each answer only an opening line, for safety), then the real request",
          "A4": "Obfuscation: the request is base64-encoded",
          "A5": "Prefix injection + refusal suppression: fixed compliant opening, no apologies allowed"}
 SRC = {"A1": "jailbreak_llms (Shen et al. 2024)", "A2": "DeepInception (Li et al. 2023)",
@@ -99,6 +99,8 @@ def data():
         ft={m: {c: FT["per_model"][m][c]["mean"] for c in CONDS} for m in ms},
         s1=dict(boot=P2["s1"]["boot"], agree=P2["s1"]["greedy_vs_majority"]),
         s2=P2["s2"], s3=dict(rho=s3["spearman"], n=s3["n"], low_zero=s3["low_pref_zero_asr"],
+                             low_zero_desc=" and ".join(f"{n} {NAMES[c].split(' (')[0].lower()}" for c, n in
+                                                       s3["low_pref_zero_by_cond"].items() if n),
                              points=[{k: p[k] for k in ("model", "cond", "bid", "p_ref", "asr")} for p in s3["points"]]),
         s4=P2["s4"], s5=P2["s5"], s6=P2["s6"], s7=P2["s7"], s9=P2["s9"],
         kappa=S["agreement"].get("cohen_kappa", 0),
