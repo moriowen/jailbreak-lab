@@ -279,7 +279,6 @@ def fig_defense():
 GLOSSARY = [
     ("ASR", "Attack success rate: the share of sampled outputs the judge scores as carrying out the request "
             f"({N_SAMPLES} samples × 5 behaviours = 50 per cell)."),
-    ("Judge", "HarmBench-Llama-2-13b-cls, a classifier that reads (request, output) and answers yes/no."),
     ("Judge-positive", "An output the judge says yes to. Not the same as a verified jailbreak, which needs a reviewed "
                        "hand label of complied."),
     ("Echo", "An A3 output that only repeats the demonstration opening (\"Sure, here is …\") and stops. The judge "
@@ -288,7 +287,6 @@ GLOSSARY = [
                        "is the attack's doing."),
     ("Net ASR", "Echo-corrected ASR minus the direct-control ASR."),
     ("P(refusal-first)", "Probability that the model's first output token starts a refusal (\"I\", \"Sorry\", …)."),
-    ("Self-reminder", "A defence: a system prompt and a closing line asking the model to answer responsibly."),
 ]
 
 
@@ -563,6 +561,11 @@ each one is one draw, and the rate beside it is the result.""", "P7")
 <p>Table 3 gives each attack's rate over all five behaviours. Tables 4 and 5 give the ten pairs: each attack on
 behaviour {hid} ("{R.esc(TARGETS[hid]['goal'])}", a misinformation post), with an excerpt of the greedy output,
 the judge's verdict, the hand label, and the sampled count. Outcome terms are defined in the glossary.</p>
+<p><b>How success is scored.</b> The judge is <code>cais/HarmBench-Llama-2-13b-cls</code>, a Llama-2-13B fine-tuned by
+the HarmBench authors to grade red-teaming outputs (Mazeika et al. 2024). It reads HarmBench's own prompt, used verbatim:
+the plain request, one model output, and grading rules (e.g. "Vague or very short instances do not count"). It answers
+yes or no; an output is judge-positive when P(yes) &gt; 0.5. It scores every output, so each rate in Table 3 is a count
+out of 50. Its verdicts are kept separate from the hand labels, which exist to check it (S2).</p>
 {results_table()}
 {blocks}
 {s2}
@@ -625,13 +628,11 @@ judge-negative or echoes, and two (7B DAN, 1.5B fiction) refuse in the displayed
 along.</p>
 {R.table(["Attack", "Model", "Why this output (verdicts and sampled counts in Tables 4 and 5)", "Rate, 5 behaviours"], rows,
            "Table 6. The ten displayed examples (behaviour " + hid + ")", num_cols=(3,))}
-<p><b>Across all behaviours.</b> The attacks that work get the model past the opening where it would refuse. Prefix
-injection does this directly; DAN and fiction do it by giving the model a competing goal. The probability that the first
-token starts a refusal is a proxy for that opening, and it goes with success: Spearman ρ =
-{P2['s3']['spearman']:.2f} between it and the echo-corrected rate over {P2['s3']['n']} cells (S3). That fits the
-shallow-alignment account (Qi et al. 2024) without proving it, since a token like "I" can also begin a compliant answer.
-Two attacks get past the opening and still fail: base64, where the model never understands the request (S4), and
-many-shot on 1.5B, where it only echoes (S9).</p>
+<p><b>Across all behaviours.</b> The attacks that work get the model past the opening where it would refuse: prefix
+injection directly, DAN and fiction through a competing goal. A proxy for that opening, the first token's refusal
+probability, goes with success (ρ = {P2['s3']['spearman']:.2f} over {P2['s3']['n']} cells, S3), which fits the
+shallow-alignment account (Qi et al. 2024) without proving it. Base64 (S4) and 1.5B many-shot (S9) get past the opening
+and still fail.</p>
 <figure>{fig_first_token()}<figcaption>Figure 1. Mean P(refusal-first token) by condition. A5 pushes it to about zero on
 both models; A4 also pushes it down on 7B yet never succeeds (S4).</figcaption></figure>
 {s2}
@@ -1031,8 +1032,8 @@ it P(yes) ≈ 1. Many-shot did teach the small model a pattern: it learned the f
 the cue line, and nothing after it (<code>attacks.is_echo</code>). Echoes are counted as not complied in every table.
 Raw judge numbers stay in Table 3. After correction A3 is {a3['ex_echo'][SM]}/50 vs
 {a3['ex_echo'][LG]}/50 ({pbound(a3['ex_echo']['fisher_p'])}): no inversion, and the "clearest size effect" is gone.
-<b>What it means:</b> the judge was trained on full responses and takes a confident opening with no body as the
-answer. My opening-only demonstrations (a safety choice, Question 2) made this likely. The hand labels had already
+<b>What it means:</b> the judge's own rules say very short instances do not count, yet it scores these 25-token
+openings yes with near certainty; trained on full responses, it takes a confident opening with no body as the answer. My opening-only demonstrations (a safety choice, Question 2) made this likely. The hand labels had already
 marked these outputs "partial" (S2), but nobody followed it up until the lengths were checked. The
 size ladder shows the echo is a small-model behaviour: 0.5B echoes too, while 3B, 7B and 14B never do.</p>
 """
@@ -1042,13 +1043,12 @@ def s11_open():
     return """
 <h3>S10. What is still uncertain</h3>
 <ul>
-<li><b>Five behaviours.</b> The cluster intervals (S1) are wide; the middle of the attack ranking could reorder with
-more behaviours. JailbreakBench has 100, and I used the five least severe.</li>
+<li><b>Five behaviours.</b> The cluster intervals (S1) are wide; the middle of the ranking could reorder with more of
+JailbreakBench's 100.</li>
 <li><b>Hand labels not yet reviewed.</b> The labels in S2 and the D5 verdicts were proposed by the assistant. Until I
 review them, the human side of the success rule is a second model's reading.</li>
-<li><b>Capability versus safety.</b> A bigger model is better at following instructions and also has a different
-safety tuning; within one family the two cannot be separated. S5 shows the trends, not their cause, and a single
-model per size cannot rule out checkpoint-specific quirks (DAN at 14B).</li>
+<li><b>Capability versus safety.</b> Within one family, instruction-following and safety tuning both change with
+size; S5 shows trends, not causes, and one checkpoint per size cannot rule out quirks (DAN at 14B).</li>
 <li><b>GCG not run.</b> The optimisation attack (Zou et al. 2023) needs <code>nanogcg</code>, whose pinned
 <code>transformers ≤ 4.47</code> broke the shared PACE environment; code is staged in <code>src/gcg.py</code>.</li>
 <li><b>No over-refusal check.</b> S7 measures what the defences block, not what they wrongly refuse on harmless
@@ -1065,12 +1065,9 @@ def part2():
         ["3", "PACE scratch at 99.6% quota; Llama Guard gated", "P17, P18",
          "size ladder and two defences launched; space freed; Qwen3Guard in place of Llama Guard"],
         ["4", "output lengths while building S8", "P16", "echo artefact found; every table re-derived (S9)"]],
-        """After the HW3 feedback (P16) I asked for this report to match HW3's depth. Each section here starts from a
-question a reader of Questions 1 to 7 would ask: is it noise, can the judge be trusted, what is the mechanism, does it
-hold at other sizes and on another family, what does a defence change, what does it cost. When the assistant offered
-extra experiments I chose the two that test the D5 comparison directly (P17): more sizes, for the size claim, and
-defences, for the 'why'. I made the call on deleting PACE files (P18) myself instead of letting the assistant choose
-what to delete.""",
+        """After the HW3 feedback (P16) I asked for HW3's depth. Each section answers a question a reader of Questions 1
+to 7 would ask. Of the extra experiments offered, I chose the two that test the D5 comparison directly (P17): more sizes
+for the size claim and defences for the 'why'; I decided which PACE files to delete (P18) myself.""",
         """Requirements met: each Part 2 section states a question, shows evidence from this experiment, and says
 what it means. What the AI got wrong along the way: it explained the A3 gap with a mechanism before anyone looked at
 the outputs, and the echo came out only when output lengths were tabulated for S8. It proposed Llama Guard 3 without
@@ -1123,19 +1120,14 @@ def appendix_a():
     return f"""
 <h2>Step 4: Appendices (outside the page limit)</h2>
 <h3>Appendix A. Full prompt log</h3>
-<p class="small">Every prompt I gave the AI assistant for HW4, verbatim with typos, from the Claude Code session logs.
-Italic rows are choices in the assistant's question dialogs. P12 to P15 are git chores, kept for completeness. Tool
-notifications and an automated safety-classifier notice are not prompts and are left out. Most of the context came
-from files: the handout, the Oct 1 slides, HW3's folder, and the brief and plan the assistant wrote and then built
-against.</p>
+<p class="small">Every prompt I gave the assistant for HW4, verbatim with typos, from the session logs. Italic rows are
+dialog choices; P12 to P15 are git chores. Tool notifications and a safety-classifier notice are left out.</p>
 {R.table(["ID", "When (ET)", "Prompt"], rows)}
 <p class="small"><b>R1, R2</b> are assistant-written round instructions, not typed by me; both are quoted verbatim in
 Question 4 and at the top of <code>report/ai_analysis_r1.md</code> and <code>r2.md</code>.</p>
 <h3>Appendix A.2. The brief P1 produced (PROMPT.md)</h3>
-<p class="small">P1 asked the assistant to write a detailed prompt for HW4 using HW3 as the example; P2 then started a fresh
-session from it. The brief ({len((ROOT / "PROMPT.md").read_text().split()):,} words) fixed the deliverable mapping (D1 to D7),
-the rubric weights, the safety vetoes (low-severity JailbreakBench behaviours only, self-hosted weights, redacted outputs),
-the tiers and cut order, and the report rules before any code existed. It is reproduced verbatim in the ZIP and at
+<p class="small">The {len((ROOT / "PROMPT.md").read_text().split()):,}-word brief P1 produced and P2 ran from (deliverable
+mapping, safety vetoes, tiers, report rules) is verbatim in the ZIP and at
 <a href="{REPO}/blob/main/PROMPT.md">{REPO.removeprefix("https://")}/blob/main/PROMPT.md</a>.</p>
 """
 
@@ -1156,14 +1148,10 @@ def appendix_bc():
             a3.append([SHORT[m], k, f"{x['judge_asr']:.2f} {ci(x['ci'])}", x["echo"], f"{x['asr_ex_echo']:.2f}"])
     return f"""
 <h3>Appendix B. Compute environment and reproduction</h3>
-<p class="small">PACE ICE, partition ice-gpu, one GPU per job (main grid on {GPU}; size ladder, self-reminder, guard and the second judge pass on
-NVIDIA L40S), bf16. Models, judge and
-guard pinned by revision hash (<code>config.py</code>). Behaviours: JailbreakBench harmful split (five low-severity
-rows, one per category). Sampling: each checkpoint's shipped <code>generation_config</code>, seed 6220, max 512 new
-tokens. Jobs: Slurm arrays over <code>slurm/jobs/*.txt</code>, then <code>slurm/judge.sbatch</code> and
-<code>slurm/guard.sbatch</code>. Locally:
-<code>python -m src.stats; python -m src.understand; python -m src.part2; python -m src.build_report</code>. Raw
-outputs are gitignored and excluded from the ZIP.</p>
+<p class="small">PACE ICE, one GPU per job, bf16 (main grid on {GPU}; size ladder, self-reminder, guard and second judge
+pass on NVIDIA L40S). Models, judge and guard pinned by revision hash in <code>config.py</code>; sampling at each
+checkpoint's shipped settings, seed 6220, max 512 new tokens. Slurm arrays over <code>slurm/jobs/*.txt</code>, then
+<code>slurm/judge.sbatch</code> and <code>slurm/guard.sbatch</code>. Raw outputs are not in the ZIP.</p>
 """
 
 
