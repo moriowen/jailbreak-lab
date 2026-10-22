@@ -34,6 +34,8 @@ BIDS = [f"jbb-{i:03d}" for i in BEHAVIOR_IDS]
 SHORT = {"qwen2.5-0.5b": "0.5B", "qwen2.5-1.5b": "1.5B", "qwen2.5-3b": "3B", "qwen2.5-7b": "7B",
          "qwen2.5-14b": "14B", "smollm2-1.7b": "SmolLM2-1.7B"}
 GPU = "NVIDIA H100 80GB"
+SITE = "https://jailbreak-lab-lilac.vercel.app"
+REPO = "https://github.com/moriowen/jailbreak-lab"
 CSS_EXTRA = """
 .todo { background: #fff4d6; border-left: 3px solid #e0a800; padding: 2px 6px; display: block; }
 blockquote.out { font-size: 8pt; color: #333; }
@@ -318,8 +320,10 @@ def cover():
 <p><b>Student Name:</b> Atharva Mohite</p>
 <p><b>Student ID:</b> {R.SID_SLOT}</p>
 <p class="small">Code and aggregate results: submitted ZIP (<code>src/</code>, <code>data/</code>, <code>slurm/</code>,
-summary JSON). Raw model outputs are excluded because they contain harmful text. All GPU work ran on PACE ICE
-({GPU}). Private repository (jailbreak content), so there is no public site.</p>
+summary JSON). Raw model outputs are excluded because they contain harmful text. All GPU work ran on PACE ICE.</p>
+<p class="small"><b>Interactive results site:</b> <a href="{SITE}">{SITE.removeprefix("https://")}</a> (every chart,
+the per-behaviour grid, and a browser for every model × attack × behaviour cell, outputs cut to their first line)
+&nbsp;·&nbsp; <b>Code:</b> <a href="{REPO}">{REPO.removeprefix("https://")}</a></p>
 </div>
 <div class="glance">
 <p><b>At a glance.</b> I ran five published jailbreak attacks, one per lecture category, against Qwen2.5-1.5B-Instruct
@@ -917,7 +921,8 @@ what to delete.""",
 <h2 class="q pb">Part 2. Understanding the results (beyond the handout)</h2>
 <p>Questions 1 to 7 answer the handout. This part asks why the results came out as they did. Each section starts from a
 question the main results raise, shows the evidence, and says what it means. S1 to S4, S9 and S10 re-analyse the outputs
-already collected; S5 to S7 are new runs on PACE.</p>
+already collected; S5 to S7 are new runs on PACE. Interactive versions of every chart and a browser for all cells are on
+the results site ({SITE.removeprefix("https://")}).</p>
 {s1_noise()}{s2_judge()}{s3_mech()}{s4_decode()}{s5_sizes()}{s6_family()}{s7_defense()}{s9_cost()}{s10_echo()}
 {s11_open()}
 {s2}

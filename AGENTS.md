@@ -27,7 +27,9 @@ adapted, not rewritten.
   only. No CBRN, weapons, self-harm, minors, or real malware. Don't invent new behaviours.
 - Self-hosted open weights on PACE ICE only. Never send an attack to a commercial API, and
   don't run models on the Mac (8 GB, swaps hard).
-- The repo is private and there is no public site. The user decides if that changes.
+- The repo (`moriowen/jailbreak-lab`) is public and the site is public
+  (https://jailbreak-lab-lilac.vercel.app; user, Oct 22). Both carry aggregates only: the site
+  shows each output's first line, refusals whole; raw `gen_*`/`judge_*` never leave `results/`.
 - Don't write the user's critique (handout D6 / rubric 4b). Candidate weaknesses go in
   `report/critique-notes.md`, and the report carries a marked placeholder.
 

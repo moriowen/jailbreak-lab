@@ -24,3 +24,4 @@ prompts-raw.md
 
 # large pinned source dumps (cloned/downloaded; re-fetchable from config.SOURCES SHAs)
 data/sources/dl/
+.vercel

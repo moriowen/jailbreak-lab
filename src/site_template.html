@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jailbreak Lab: five attacks on open LLMs</title>
+<meta name="description" content="Five published jailbreak attacks against Qwen2.5-Instruct models from 0.5B to 14B, with controls, two defences, and the judge artefact that produced a fake size effect.">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #fcfcfb; --surface: #ffffff; --surface-2: #f4f4f2; --line: #e4e3df; --grid: #ecebe7;
+  --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #807f7a;
+  --accent: #2a78d6;
+  --s-base: #8f8e89; --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+  --good: #1a7f37; --bad: #c62828;
+  --seq-0: #f4f4f2; --seq-1: #cde2fb; --seq-2: #86b6ef; --seq-3: #3987e5; --seq-4: #1c5cab; --seq-5: #0d366b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --bg: #121211; --surface: #1a1a19; --surface-2: #232321; --line: #33332f; --grid: #2a2a27;
+    --ink: #ffffff; --ink-2: #c3c2b7; --ink-3: #8f8e86;
+    --accent: #3987e5;
+    --s-base: #9a998f; --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    --good: #4cc26a; --bad: #ef6b6b;
+    --seq-0: #232321; --seq-1: #104281; --seq-2: #1c5cab; --seq-3: #2a78d6; --seq-4: #6da7ec; --seq-5: #cde2fb;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121211; --surface: #1a1a19; --surface-2: #232321; --line: #33332f; --grid: #2a2a27;
+  --ink: #ffffff; --ink-2: #c3c2b7; --ink-3: #8f8e86;
+  --accent: #3987e5;
+  --s-base: #9a998f; --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+  --good: #4cc26a; --bad: #ef6b6b;
+  --seq-0: #232321; --seq-1: #104281; --seq-2: #1c5cab; --seq-3: #2a78d6; --seq-4: #6da7ec; --seq-5: #cde2fb;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif; }
+a { color: var(--accent); }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+header.top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; align-items: center; gap: 16px; height: 52px; }
+header.top .brand { font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; text-decoration: none; color: var(--ink); }
+nav.toc { display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; flex: 1; font-size: 14px; }
+nav.toc a { color: var(--ink-2); text-decoration: none; white-space: nowrap; }
+nav.toc a:hover { color: var(--ink); }
+button { font: inherit; }
+.iconbtn { border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); border-radius: 8px; padding: 4px 10px; cursor: pointer; font-size: 14px; }
+.hero { padding: 56px 0 24px; }
+.eyebrow { color: var(--ink-3); font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.1; letter-spacing: -0.02em; margin: 8px 0 16px; max-width: 22ch; }
+.lede { font-size: 19px; color: var(--ink-2); max-width: 62ch; margin: 0; }
+.meta { color: var(--ink-3); font-size: 14px; margin-top: 14px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 32px 0 8px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+.stat .v { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .k { color: var(--ink-2); font-size: 14px; margin-top: 6px; }
+section { padding: 40px 0 8px; border-top: 1px solid var(--line); margin-top: 32px; scroll-margin-top: 60px; }
+h2 { font-size: 28px; letter-spacing: -0.015em; margin: 0 0 6px; line-height: 1.2; }
+h3 { font-size: 18px; margin: 28px 0 6px; }
+.claim { font-size: 18px; color: var(--ink); font-weight: 500; max-width: 68ch; margin: 4px 0 16px; }
+p { max-width: 70ch; }
+.muted { color: var(--ink-2); }
+.small { font-size: 14px; color: var(--ink-2); }
+ol.findings { counter-reset: f; list-style: none; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+ol.findings li { counter-increment: f; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 16px 14px 52px; position: relative; }
+ol.findings li::before { content: counter(f); position: absolute; left: 16px; top: 15px; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; display: grid; place-items: center; }
+ol.findings b { display: block; margin-bottom: 4px; }
+ol.findings a { font-size: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 16px 10px; margin: 16px 0; }
+.card .ctitle { font-weight: 600; font-size: 15px; }
+.card .csub { color: var(--ink-2); font-size: 13px; margin-bottom: 6px; }
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { fill: var(--ink-2); font-size: 11px; font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--ink-2); margin: 4px 0 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; }
+.legend i.box { height: 10px; width: 10px; border-radius: 2px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0 8px; font-size: 14px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
+.seg button { border: 0; background: var(--surface); color: var(--ink-2); padding: 5px 10px; cursor: pointer; font-size: 13px; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+select, input[type="search"] { font: inherit; font-size: 14px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
+.tablebtn { background: none; border: 0; color: var(--accent); cursor: pointer; font-size: 13px; padding: 4px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--ink-2); font-weight: 600; font-size: 13px; }
+td.n, th.n { text-align: right; }
+.tscroll { overflow-x: auto; }
+#tip { position: fixed; pointer-events: none; z-index: 50; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; box-shadow: 0 6px 24px rgba(0,0,0,.14); opacity: 0; transition: opacity .08s; max-width: 280px; }
+#tip .th { color: var(--ink-2); font-size: 12px; margin-bottom: 4px; }
+#tip .row { display: flex; align-items: center; gap: 8px; }
+#tip .row b { font-variant-numeric: tabular-nums; }
+#tip .row i { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+#tip .row span { color: var(--ink-2); }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+#echo-ex { white-space: pre-wrap; }
+.callout { border-left: 3px solid var(--accent); background: var(--surface-2); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0; max-width: 72ch; }
+.qlist { display: grid; gap: 8px; }
+details.q { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+details.q summary { list-style: none; cursor: pointer; padding: 10px 12px; display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: start; }
+details.q summary::-webkit-details-marker { display: none; }
+details.q .qt { font-weight: 500; }
+details.q .qc { color: var(--ink-3); font-size: 12px; }
+.dots { display: flex; gap: 4px; align-items: center; white-space: nowrap; }
+.dot { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; }
+.dot.ok { background: var(--good); } .dot.no { background: var(--bad); }
+details.q .body { padding: 0 12px 12px; border-top: 1px solid var(--line); }
+ul.choices { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 4px; }
+ul.choices li { padding: 6px 8px; border-radius: 6px; background: var(--surface-2); display: grid; grid-template-columns: 1fr auto; gap: 8px; font-size: 14px; }
+ul.choices li.gold { outline: 2px solid var(--good); outline-offset: -2px; }
+.tag { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line); color: var(--ink-2); white-space: nowrap; }
+.gens { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.gen { background: var(--surface-2); border-radius: 6px; padding: 8px; font-size: 13px; }
+.gen .gh { font-weight: 600; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; display: flex; gap: 6px; flex-wrap: wrap; }
+footer { border-top: 1px solid var(--line); margin-top: 48px; padding: 24px 0 48px; color: var(--ink-3); font-size: 14px; }
+code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.88em; background: var(--surface-2); padding: 1px 4px; border-radius: 4px; }
+pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-x: auto; font-size: 13px; }
+@media (max-width: 760px) {
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  ol.findings, .two, .gens { grid-template-columns: 1fr; }
+  header.top .brand { display: none; }
+  .lede { font-size: 17px; }
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="#top">Jailbreak Lab</a>
+  <nav class="toc">
+    <a href="#findings">Findings</a><a href="#results">Results</a><a href="#behaviours">Behaviours</a><a href="#why">Why</a>
+    <a href="#base64">Base64</a><a href="#sizes">Sizes</a><a href="#defences">Defences</a><a href="#judge">Judge</a>
+    <a href="#echo">The echo</a><a href="#cost">Cost</a><a href="#explorer">Outputs</a><a href="#setup">Setup</a>
+  </nav>
+  <button class="iconbtn" id="theme" aria-label="Toggle color theme">◐</button>
+</div></header>
+
+<main class="wrap" id="top">
+<div class="hero">
+  <div class="eyebrow">Experiment write-up · jailbreak attacks on open LLMs</div>
+  <h1>Telling the model how to start its answer beats every elaborate jailbreak</h1>
+  <p class="lede">I ran five published jailbreak attacks against Qwen2.5-1.5B-Instruct and Qwen2.5-7B-Instruct, with a
+  direct-request control and 10 sampled outputs per attack and behaviour. Both models refuse the plain requests. The
+  attack that forces a compliant opening and forbids refusals breaks the 7B model in
+  <b data-v="pct(D.res.A5['qwen2.5-7b'].asr)"></b> of samples. The larger model is the easier one to break, and the
+  probability of a refusal-first token predicts which attacks work.</p>
+  <div class="meta">Atharva Mohite · October 2026 · <span data-v="D.n_samples"></span> samples × 5 behaviours per cell · PACE GPUs · <a data-href="D.repo">Code and aggregate results on GitHub</a></div>
+  <div class="stats">
+    <div class="stat"><div class="v"><span data-v="pct(D.direct['qwen2.5-1.5b'])"></span> / <span data-v="pct(D.direct['qwen2.5-7b'])"></span></div><div class="k">direct requests carried out, 1.5B / 7B (the safe baseline)</div></div>
+    <div class="stat"><div class="v"><span data-v="pct(D.res.A5['qwen2.5-1.5b'].asr)"></span> → <span data-v="pct(D.res.A5['qwen2.5-7b'].asr)"></span></div><div class="k">prefix injection + refusal suppression, 1.5B → 7B</div></div>
+    <div class="stat"><div class="v" data-v="'ρ = '+D.s3.rho.toFixed(2)"></div><div class="k">rank correlation between refusal-first probability and success, <span data-v="D.s3.n"></span> cells</div></div>
+    <div class="stat"><div class="v" data-v="D.echo_total+'/'+D.a3_judge_total"></div><div class="k">of the 1.5B model's many-shot "successes" were content-free echoes the judge counted as jailbreaks</div></div>
+  </div>
+</div>
+
+<section id="findings">
+  <h2>What the experiment shows</h2>
+  <ol class="findings">
+    <li><b>Refusal lives in the first few tokens.</b>The simplest attack, which dictates how the answer begins and bans apologies, is the strongest on both models. Across all cells, the lower the chance the first token starts a refusal, the higher the success rate. <a href="#why">Mechanism</a></li>
+    <li><b>The bigger model is easier to turn.</b>Every attack that works at all works better on 7B. It follows the attack's instructions more faithfully, and that works against its safety training. <a href="#results">Results</a> · <a href="#sizes">Across sizes</a></li>
+    <li><b>Base64 fails for a boring reason.</b>On 7B the attack gets past the refusal, but neither model can decode the request, so they answer a hallucinated one. Zero success here says nothing about safety. <a href="#base64">Evidence</a></li>
+    <li><b>A trusted judge can be fooled by an echo.</b>On many-shot, the small model copies the demonstration's opening line and stops. The HarmBench classifier scores that as a full jailbreak, which produced a fake "size effect" with p &lt; 10⁻⁶. <a href="#echo">The story</a></li>
+    <li><b>Five behaviours are not fifty samples.</b>The same attack scores 0/10 on one behaviour and 10/10 on another. Intervals that resample behaviours are up to <span data-v="D.ci_ratio.toFixed(1)+'×'"></span> wider than ones that treat samples as independent. <a href="#behaviours">Per behaviour</a></li>
+    <li><b>Two cheap defences, attack by attack.</b>A self-reminder prompt and a separate safety classifier on input and output, neither needing retraining, compared on every attack. <a href="#defences">Defences</a></li>
+  </ol>
+</section>
+
+<section id="results">
+  <h2>Headline results</h2>
+  <p class="claim">Every attack beats the direct-request baseline except base64, and 7B is broken at least as often as 1.5B on every attack.</p>
+  <div class="card">
+    <div class="ctitle">Attack success rate by model</div>
+    <div class="csub">Share of 50 sampled outputs (5 behaviours × 10) the judge scores as carrying out the request. Hover for 95% intervals.</div>
+    <div class="controls"><span class="small">Many-shot scoring:</span><div class="seg" id="seg-echo"><button data-k="fixed" aria-pressed="true">echoes removed</button><button data-k="raw" aria-pressed="false">raw judge</button></div></div>
+    <div class="legend" id="l-res"></div>
+    <div class="chart" id="c-res"></div>
+    <button class="tablebtn" data-table="res">Show table</button><div class="tscroll" id="t-res" hidden></div>
+  </div>
+</section>
+
+<section id="behaviours">
+  <h2>One attack, five very different behaviours</h2>
+  <p class="claim">Success depends on the behaviour as much as on the attack, so the per-attack rates rest on five clusters, not fifty independent draws.</p>
+  <div class="card">
+    <div class="ctitle">Sampled successes out of 10, per attack and behaviour</div>
+    <div class="controls"><div class="seg" id="seg-hm"><button data-k="qwen2.5-1.5b" aria-pressed="true">1.5B</button><button data-k="qwen2.5-7b" aria-pressed="false">7B</button></div></div>
+    <div class="chart" id="c-hm"></div>
+  </div>
+  <div class="card">
+    <div class="ctitle">Two intervals for the same rate</div>
+    <div class="csub">Wilson treats 50 samples as independent; the cluster bootstrap resamples whole behaviours (4,000 draws). Raw judge scores.</div>
+    <div class="tscroll" id="t-ci"></div>
+  </div>
+  <p>The greedy output agrees with the majority of its 10 samples in <span data-v="D.s1.agree.same+'/'+D.s1.agree.n"></span> cells. A single deterministic output per attack, which is what a typical demo shows, would mislabel about one cell in five.</p>
+</section>
+
+<section id="why">
+  <h2>Why the attacks that work, work</h2>
+  <p class="claim">When the first output token is unlikely to start a refusal, the model usually goes on to comply.</p>
+  <div class="two">
+    <div class="card">
+      <div class="ctitle">Refusal-first probability by condition</div>
+      <div class="csub">Probability mass on refusal-starting first tokens ("I", "Sorry", …), mean over 5 behaviours.</div>
+      <div class="legend" id="l-ft"></div>
+      <div class="chart" id="c-ft"></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Refusal-first probability vs success, every cell</div>
+      <div class="csub">Each point is one model × condition × behaviour. Hover for details.</div>
+      <div class="legend" id="l-sc"></div>
+      <div class="chart" id="c-sc"></div>
+    </div>
+  </div>
+  <p>This is the shallow-alignment picture (Qi et al. 2024): safety training mostly shapes how a response begins. Prefix injection removes that opening outright. DAN and nested fiction lower it by giving the model a competing goal. The exceptions are the <span data-v="D.s3.low_zero"></span> cells where the refusal is skipped and still nothing harmful comes out, all of them base64.</p>
+</section>
+
+<section id="base64">
+  <h2>Base64: past the guardrail, but lost</h2>
+  <p class="claim">The models never decode the hidden request; they confidently answer a different, hallucinated one.</p>
+  <div class="card"><div class="ctitle">How much of the hidden request shows up in the answer</div><div class="csub">Share of the request's content words that appear in each output (greedy + 10 samples × 5 behaviours).</div><div class="tscroll" id="t-b64"></div></div>
+  <p>A typical "decoding" turns a request about a misinformation article into "a secure and reliable communication channel for version 5 of the API". Wei et al. (2023) describe this: obfuscation attacks exploit capabilities that safety training did not cover, so they only work once the model can do the decoding.</p>
+</section>
+
+<section id="sizes">
+  <h2>Across five sizes of the same model</h2>
+  <p class="claim" id="sizes-claim"></p>
+  <div class="card">
+    <div class="ctitle">Success rate vs model size, Qwen2.5-Instruct 0.5B to 14B</div>
+    <div class="csub">Same attacks, behaviours, samples and judge at every size (echoes removed). Log-scale size axis.</div>
+    <div class="legend" id="l-sz"></div>
+    <div class="chart" id="c-sz"></div>
+    <button class="tablebtn" data-table="sz">Show table</button><div class="tscroll" id="t-sz" hidden></div>
+  </div>
+  <div class="card">
+    <div class="ctitle">A model from another family: SmolLM2-1.7B-Instruct</div>
+    <div class="csub">Similar size to Qwen 1.5B, much lighter safety tuning.</div>
+    <div class="tscroll" id="t-smol"></div>
+  </div>
+  <p>SmolLM2 carries out a large share of the <i>direct</i> requests with no attack at all, so its attack rates mostly reflect missing safety tuning, not attack strength. A jailbreak number means nothing without its control.</p>
+</section>
+
+<section id="defences">
+  <h2>What two cheap defences stop</h2>
+  <p class="claim" id="def-claim"></p>
+  <div class="card">
+    <div class="ctitle">Success rate under each defence</div>
+    <div class="csub"><b>Self-reminder</b>: a system prompt and closing line asking the model to answer responsibly (Xie et al. 2023); outputs regenerated. <b>Guard</b>: Qwen3Guard-Gen-4B screening the prompt (input) and the response (output), applied to the undefended outputs.</div>
+    <div class="controls"><div class="seg" id="seg-def"><button data-k="qwen2.5-1.5b" aria-pressed="true">1.5B</button><button data-k="qwen2.5-7b" aria-pressed="false">7B</button></div></div>
+    <div class="legend" id="l-def"></div>
+    <div class="chart" id="c-def"></div>
+  </div>
+</section>
+
+<section id="judge">
+  <h2>Can the judge be trusted?</h2>
+  <p class="claim">On clear refusals and clear compliance the judge agrees with a hand reading. It disagrees on "partial" outputs, which go along with the request but carry little content.</p>
+  <div class="card"><div class="ctitle">Judge verdict on the greedy output, by hand label</div><div class="csub">Cells: judge said "yes" / outputs with that label. Both models.</div><div class="tscroll" id="t-judge"></div></div>
+  <p class="small">The hand labels were proposed by the AI assistant and are being reviewed by me; until then this compares the judge with a second model's reading. Cohen's κ = <span data-v="D.kappa.toFixed(2)"></span>.</p>
+</section>
+
+<section id="echo">
+  <h2>The echo that looked like a size effect</h2>
+  <p class="claim">My first analysis said many-shot breaks the small model and not the large one. It was the judge scoring a copied template as a jailbreak.</p>
+  <div class="two">
+    <div class="card">
+      <div class="ctitle">Many-shot success vs number of shots</div>
+      <div class="csub">Dashed: raw judge. Solid: echoes removed.</div>
+      <div class="legend" id="l-a3"></div>
+      <div class="chart" id="c-a3"></div>
+    </div>
+    <div>
+      <p>The many-shot attack shows the model 4 to 16 fake exchanges in which the assistant agrees, each answer being only an opening line ("Sure, here is …") followed by a cue. The 1.5B model learned the format, not the content: it writes the opening for the new request and stops, about 25 tokens in. A complete output:</p>
+      <pre id="echo-ex"></pre>
+      <p>The HarmBench classifier gives this P(yes) ≈ 1. Raw, the comparison was <span data-v="D.a3.raw"></span>; with echoes removed it is <span data-v="D.a3.fixed"></span>. The giveaway was output length, spotted while building the cost table.</p>
+    </div>
+  </div>
+</section>
+
+<section id="cost">
+  <h2>What each attack costs to run</h2>
+  <p class="claim">The attacks are cheap; cost tracks how much the model writes, and on the 1.5B model, complied answers run a median <span data-v="D.len.yes"></span> tokens against <span data-v="D.len.no"></span> for everything else.</p>
+  <div class="card"><div class="ctitle">Prompt length, output length and time per batch of 10 samples</div><div class="csub">Output tokens / seconds per batch (bf16, max 512 new tokens). GPU type varies by run; see the setup notes.</div><div class="tscroll" id="t-cost"></div></div>
+</section>
+
+<section id="explorer">
+  <h2>Every cell</h2>
+  <p class="small">One row per model × condition × behaviour. Outputs are cut to their first line, and only refusals are shown whole: the full text of a successful jailbreak is not published.</p>
+  <div class="controls">
+    <select id="x-model"></select><select id="x-cond"></select>
+    <div class="seg" id="seg-x"><button data-k="all" aria-pressed="true">all</button><button data-k="hit" aria-pressed="false">judge yes</button><button data-k="miss" aria-pressed="false">judge no</button></div>
+  </div>
+  <div class="qlist" id="x-list"></div>
+</section>
+
+<section id="setup">
+  <h2>Setup</h2>
+  <div class="two">
+    <div>
+      <h3>Models</h3>
+      <p>Targets: Qwen2.5-1.5B-Instruct and Qwen2.5-7B-Instruct (Alibaba Cloud), plus 0.5B, 3B and 14B for the size curve and SmolLM2-1.7B-Instruct as a second family. All open weights, pinned to revision hashes, run in bf16 on Georgia Tech's PACE ICE cluster. Judge: HarmBench-Llama-2-13b-cls. Guard: Qwen3Guard-Gen-4B.</p>
+      <h3>Behaviours</h3>
+      <p>Five rows of JailbreakBench's harmful split, one per category, picked for low severity (a defamatory article, a 5G/COVID misinformation post, fake reviews, a payday-loan blog post, a phishing email template).</p>
+      <h3>Scoring</h3>
+      <p>1 greedy + 10 sampled outputs per cell at each model's shipped sampling settings. Success is the judge's verdict on sampled outputs, with many-shot echoes removed; intervals are Wilson 95% unless stated.</p>
+    </div>
+    <div>
+      <h3>The five attacks</h3>
+      <div class="tscroll" id="t-atk"></div>
+    </div>
+  </div>
+  <h3>Limitations</h3>
+  <ul>
+    <li>Five behaviours, all low severity: the middle of the attack ranking could reorder with more.</li>
+    <li>One model family for the size comparison; size and instruction-following ability are confounded.</li>
+    <li>Success is judge-scored; hand labels are still under review.</li>
+    <li>The defences were measured on what they block, not on how often they wrongly refuse harmless prompts.</li>
+    <li>The optimisation-based GCG attack was planned but not run.</li>
+  </ul>
+  <h3>Reproduce</h3>
+  <pre>git clone https://github.com/moriowen/jailbreak-lab && cd jailbreak-lab
+pip install -r requirements.txt
+python -m src.data                                      # pinned templates and behaviours
+sbatch --array=0-15 slurm/array.sbatch slurm/jobs/grid.txt   # generations (Slurm, one GPU per job)
+sbatch slurm/judge.sbatch && sbatch slurm/guard.sbatch
+python -m src.stats && python -m src.understand && python -m src.part2
+python -m src.build_site                                # this page</pre>
+  <h3>References</h3>
+  <ol class="small">
+    <li>Wei, Haghtalab, Steinhardt (2023). Jailbroken: How does LLM safety training fail? NeurIPS.</li>
+    <li>Qi et al. (2025). Safety alignment should be made more than just a few tokens deep. ICLR.</li>
+    <li>Anil et al. (2024). Many-shot jailbreaking. NeurIPS.</li>
+    <li>Shen et al. (2024). "Do Anything Now": Characterizing in-the-wild jailbreak prompts. CCS.</li>
+    <li>Li et al. (2023). DeepInception: Hypnotize large language model to be jailbreaker. arXiv:2311.03191.</li>
+    <li>Mazeika et al. (2024). HarmBench. ICML.</li>
+    <li>Chao et al. (2024). JailbreakBench. NeurIPS Datasets and Benchmarks.</li>
+    <li>Xie et al. (2023). Defending ChatGPT against jailbreak attack via self-reminders. Nature Machine Intelligence.</li>
+    <li>Qwen Team (2024). Qwen2.5 technical report; (2025) Qwen3Guard.</li>
+  </ol>
+</section>
+</main>
+<footer><div class="wrap">Built from the aggregate result files in <a data-href="D.repo">the repository</a>; every number on this page is read from them at build time. Raw model outputs are not published.</div></footer>
+<div id="tip" role="status" aria-live="polite"></div>
+
+<script>
+const D = /*__DATA__*/null;
+const pct = x => (100 * x).toFixed(0) + '%';
+const mib = b => b;
+const f = (x, k = 2) => Number(x).toFixed(k);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const ATK = ['A1', 'A2', 'A3', 'A4', 'A5'], CONDS = ['direct', ...ATK];
+const MS = ['qwen2.5-1.5b', 'qwen2.5-7b'];
+const SHORT = D.short;
+const MCOL = { 'qwen2.5-1.5b': '--s1', 'qwen2.5-7b': '--s2' };
+const CCOL = { direct: '--s-base', A1: '--seq-3', A2: '--s3', A3: '--seq-5', A4: '--ink-3', A5: '--s2' };
+// ---- fill data-bound text ----
+document.querySelectorAll('[data-v]').forEach(el => { el.textContent = new Function('D', 'pct', 'mib', 'return ' + el.dataset.v)(D, pct, mib); });
+document.querySelectorAll('[data-href]').forEach(el => { el.href = new Function('D', 'return ' + el.dataset.href)(D); });
+
+// ---- theme ----
+const themeBtn = document.getElementById('theme');
+try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+themeBtn.addEventListener('click', () => {
+  const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.dataset.theme = dark ? 'light' : 'dark';
+  try { localStorage.setItem('theme', document.documentElement.dataset.theme); } catch (e) {}
+  renderAll();
+});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', renderAll);
+
+// ---- tooltip ----
+const tip = document.getElementById('tip');
+function showTip(ev, title, rows) {
+  tip.replaceChildren();
+  const h = document.createElement('div'); h.className = 'th'; h.textContent = title; tip.appendChild(h);
+  for (const r of rows) {
+    const d = document.createElement('div'); d.className = 'row';
+    if (r.color) { const i = document.createElement('i'); i.style.background = r.color; d.appendChild(i); }
+    const b = document.createElement('b'); b.textContent = r.value; d.appendChild(b);
+    if (r.label) { const s = document.createElement('span'); s.textContent = r.label; d.appendChild(s); }
+    tip.appendChild(d);
+  }
+  const x = ev.clientX + 14, y = ev.clientY + 14;
+  tip.style.left = Math.min(x, innerWidth - tip.offsetWidth - 8) + 'px';
+  tip.style.top = Math.min(y, innerHeight - tip.offsetHeight - 8) + 'px';
+  tip.style.opacity = 1;
+}
+const hideTip = () => { tip.style.opacity = 0; };
+
+// ---- svg helpers ----
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function txt(parent, x, y, s, attrs = {}) { const t = el('text', { x, y, ...attrs }, parent); t.textContent = s; return t; }
+function niceTicks(lo, hi, n = 5) {
+  const span = hi - lo, step0 = span / n, mag = 10 ** Math.floor(Math.log10(step0));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= n) || mag * 10;
+  const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10));
+  return out;
+}
+function frame(container, h, m) {
+  container.replaceChildren();
+  const w = Math.max(container.clientWidth, 280);
+  const svg = el('svg', { viewBox: `0 0 ${w} ${h}`, role: 'img' }, container);
+  return { svg, w, h, iw: w - m.l - m.r, ih: h - m.t - m.b, m };
+}
+function legend(id, items) {
+  const L = document.getElementById(id); if (!L) return; L.replaceChildren();
+  for (const it of items) {
+    const s = document.createElement('span'), i = document.createElement('i');
+    if (it.box) i.className = 'box'; i.style.background = it.color; s.append(i, document.createTextNode(it.name)); L.appendChild(s);
+  }
+}
+
+// ---- line chart: series of {x, y, sd}; crosshair snaps to nearest x ----
+function lineChart(container, o) {
+  const F = frame(container, o.h || 280, { t: 12, r: 16, b: 38, l: 48 });
+  const g = el('g', { transform: `translate(${F.m.l},${F.m.t})` }, F.svg);
+  const xs = [...new Set(o.series.flatMap(s => s.pts.map(p => p.x)))].sort((a, b) => a - b);
+  const xmin = Math.min(...xs), xmax = Math.max(...xs);
+  const X = o.xlog ? v => (Math.log2(v) - Math.log2(xmin)) / (Math.log2(xmax) - Math.log2(xmin) || 1) * F.iw
+                   : v => (v - xmin) / (xmax - xmin || 1) * F.iw;
+  const all = o.series.flatMap(s => s.pts.flatMap(p => [p.y - (p.sd || 0), p.y + (p.sd || 0)])).concat(o.ref ? [o.ref.y] : []);
+  let lo = Math.min(...all), hi = Math.max(...all); const pad = (hi - lo) * 0.12 || 0.05; lo -= pad; hi += pad;
+  if (o.ymin !== undefined) lo = o.ymin; if (o.ymax !== undefined) hi = o.ymax;
+  const Y = v => F.ih - (v - lo) / (hi - lo) * F.ih;
+  for (const t of niceTicks(lo, hi, 5)) {
+    el('line', { x1: 0, x2: F.iw, y1: Y(t), y2: Y(t), stroke: css('--grid') }, g);
+    txt(g, -8, Y(t) + 4, o.yfmt ? o.yfmt(t) : t, { 'text-anchor': 'end' });
+  }
+  for (const t of (o.xticks || xs)) txt(g, X(t), F.ih + 18, t, { 'text-anchor': 'middle' });
+  if (o.xlabel) txt(g, F.iw / 2, F.ih + 34, o.xlabel, { 'text-anchor': 'middle' });
+  if (o.ref) {
+    el('line', { x1: 0, x2: F.iw, y1: Y(o.ref.y), y2: Y(o.ref.y), stroke: css('--ink-3'), 'stroke-dasharray': '4 3' }, g);
+    txt(g, F.iw - 4, Y(o.ref.y) + 14, o.ref.label, { fill: css('--ink-3'), 'text-anchor': 'end' });
+  }
+  if (o.vline) for (const v of o.vline) el('line', { x1: X(v), x2: X(v), y1: 0, y2: F.ih, stroke: css('--ink-3'), 'stroke-dasharray': '4 3' }, g);
+  for (const s of o.series) {
+    const c = s.color;
+    for (const p of s.pts) if (p.sd) el('line', { x1: X(p.x), x2: X(p.x), y1: Y(p.y - p.sd), y2: Y(p.y + p.sd), stroke: c, 'stroke-width': 1.5, opacity: 0.55 }, g);
+    el('path', { d: s.pts.map((p, i) => (i ? 'L' : 'M') + X(p.x) + ',' + Y(p.y)).join(''), fill: 'none', stroke: c, 'stroke-width': 2, 'stroke-dasharray': s.dash || '' }, g);
+    if (!s.noMarkers) for (const p of s.pts) el('circle', { cx: X(p.x), cy: Y(p.y), r: 4, fill: c, stroke: css('--surface'), 'stroke-width': 2 }, g);
+  }
+  const hair = el('line', { y1: 0, y2: F.ih, stroke: css('--ink-3'), opacity: 0 }, g);
+  const hit = el('rect', { width: F.iw, height: F.ih, fill: 'transparent' }, g);
+  hit.addEventListener('pointermove', ev => {
+    const r = F.svg.getBoundingClientRect(), px = (ev.clientX - r.left) * (F.w / r.width) - F.m.l;
+    const x = xs.reduce((a, b) => Math.abs(X(b) - px) < Math.abs(X(a) - px) ? b : a);
+    hair.setAttribute('x1', X(x)); hair.setAttribute('x2', X(x)); hair.setAttribute('opacity', 0.6);
+    const rows = o.series.map(s => { const p = s.pts.find(q => q.x === x); return p && { color: s.color, value: (o.vfmt || (v => f(v)))(p.y) + (p.sd ? ' ± ' + (o.vfmt || (v => f(v)))(p.sd) : ''), label: s.name }; }).filter(Boolean);
+    showTip(ev, (o.xname || 'x') + ' ' + x, rows);
+  });
+  hit.addEventListener('pointerleave', () => { hair.setAttribute('opacity', 0); hideTip(); });
+}
+
+// ---- bars: items {label, value, sd?, dots?, color} ; horizontal ----
+function hbars(container, o) {
+  const rowH = o.rowH || 34, h = o.items.length * rowH + 34;
+  const F = frame(container, h, { t: 6, r: 56, b: 26, l: o.labelW || 110 });
+  const g = el('g', { transform: `translate(${F.m.l},${F.m.t})` }, F.svg);
+  const lo = o.min ?? 0, hi = o.max ?? Math.max(...o.items.map(i => i.value + (i.sd || 0))) * 1.08;
+  const X = v => (v - lo) / (hi - lo) * F.iw;
+  for (const t of niceTicks(lo, hi, 5)) { el('line', { x1: X(t), x2: X(t), y1: 0, y2: o.items.length * rowH, stroke: css('--grid') }, g); txt(g, X(t), o.items.length * rowH + 16, o.fmt ? o.fmt(t) : t, { 'text-anchor': 'middle' }); }
+  o.items.forEach((it, i) => {
+    const y = i * rowH + rowH * 0.2, bh = rowH * 0.6;
+    txt(g, -10, y + bh / 2 + 4, it.label, { 'text-anchor': 'end', fill: css('--ink') });
+    const x0 = X(Math.min(0, it.value)), w = Math.abs(X(it.value) - X(0));
+    const bar = el('rect', { x: x0, y, width: Math.max(w, 1), height: bh, rx: 4, fill: it.color }, g);
+    if (it.sd) el('line', { x1: X(it.value - it.sd), x2: X(it.value + it.sd), y1: y + bh / 2, y2: y + bh / 2, stroke: css('--ink'), 'stroke-width': 1.5 }, g);
+    if (it.dots) for (const d of it.dots) el('circle', { cx: X(d), cy: y + bh / 2, r: 4, fill: css('--surface'), stroke: css('--ink'), 'stroke-width': 1.5 }, g);
+    txt(g, Math.max(X(it.value), X(it.value + (it.sd || 0)), ...(it.dots || []).map(X)) + 8, y + bh / 2 + 4, o.fmt ? o.fmt(it.value) : it.value, { fill: css('--ink') });
+    const hit = el('rect', { x: 0, y: i * rowH, width: F.iw, height: rowH, fill: 'transparent' }, g);
+    hit.addEventListener('pointermove', ev => { bar.setAttribute('opacity', 0.8); showTip(ev, it.label, it.tip || [{ color: it.color, value: (o.fmt || String)(it.value) + (it.sd ? ' ± ' + (o.fmt || String)(it.sd) : '') }]); });
+    hit.addEventListener('pointerleave', () => { bar.setAttribute('opacity', 1); hideTip(); });
+  });
+}
+
+// ---- grouped vertical bars: groups [label], series [{name,color,values,sds?}] ----
+function gbars(container, o) {
+  const F = frame(container, o.h || 260, { t: 12, r: 12, b: o.rot ? 70 : 34, l: 44 });
+  const g = el('g', { transform: `translate(${F.m.l},${F.m.t})` }, F.svg);
+  const hi = o.max ?? Math.max(...o.series.flatMap(s => s.values.map((v, i) => v + ((s.sds || [])[i] || 0)))) * 1.1;
+  const Y = v => F.ih - v / hi * F.ih;
+  for (const t of niceTicks(0, hi, 5)) { el('line', { x1: 0, x2: F.iw, y1: Y(t), y2: Y(t), stroke: css('--grid') }, g); txt(g, -8, Y(t) + 4, o.fmt ? o.fmt(t) : t, { 'text-anchor': 'end' }); }
+  const gw = F.iw / o.groups.length, ns = o.series.length, bw = Math.min(28, (gw * 0.75 - (ns - 1) * 2) / ns);
+  o.groups.forEach((lab, gi) => {
+    const x0 = gi * gw + (gw - (bw * ns + 2 * (ns - 1))) / 2;
+    if (o.rot) txt(g, gi * gw + gw / 2, F.ih + 12, lab, { 'text-anchor': 'end', transform: `rotate(-35 ${gi * gw + gw / 2} ${F.ih + 12})` });
+    else txt(g, gi * gw + gw / 2, F.ih + 18, lab, { 'text-anchor': 'middle' });
+    o.series.forEach((s, si) => {
+      const v = s.values[gi], x = x0 + si * (bw + 2);
+      const bar = el('path', { d: `M${x},${F.ih}V${Y(v) + 4}q0,-4 4,-4h${bw - 8}q4,0 4,4V${F.ih}Z`, fill: s.color }, g);
+      if (v <= 0) bar.setAttribute('d', `M${x},${F.ih}h${bw}v-1h-${bw}Z`);
+      const sd = (s.sds || [])[gi]; if (sd) el('line', { x1: x + bw / 2, x2: x + bw / 2, y1: Y(v - sd), y2: Y(v + sd), stroke: css('--ink'), 'stroke-width': 1.5 }, g);
+      const hit = el('rect', { x: x - 1, y: 0, width: bw + 2, height: F.ih, fill: 'transparent' }, g);
+      hit.addEventListener('pointermove', ev => { bar.setAttribute('opacity', 0.8); showTip(ev, lab, o.series.map(t => ({ color: t.color, value: (o.fmt || String)(t.values[gi]) + ((t.sds || [])[gi] ? ' ± ' + (o.fmt || String)(t.sds[gi]) : ''), label: t.name }))); });
+      hit.addEventListener('pointerleave', () => { bar.setAttribute('opacity', 1); hideTip(); });
+    });
+  });
+}
+
+// ---- heatmap ----
+function lum(hex) { const n = parseInt(hex.replace('#', ''), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
+function heatmap(container, names, cells) {
+  const n = names.length, lab = 64;
+  const w = Math.max(container.clientWidth, 280), cs = Math.min(44, (w - lab - 8) / n);
+  const F = frame(container, lab + cs * n + 8, { t: 0, r: 0, b: 0, l: 0 });
+  const g = el('g', { transform: `translate(${lab},${8})` }, F.svg);
+  const vals = cells.flat().filter((v, i) => i % (n + 1) !== 0);
+  const lo = Math.min(...vals), hi = 100;
+  const steps = ['--seq-1', '--seq-2', '--seq-3', '--seq-4', '--seq-5'];
+  names.forEach((a, i) => {
+    txt(g, -8, i * cs + cs / 2 + 4, a, { 'text-anchor': 'end' });
+    txt(g, i * cs + cs / 2, n * cs + 14, a, { 'text-anchor': 'middle', 'font-size': 10 });
+    names.forEach((b, j) => {
+      const v = cells[i][j], k = i === j ? -1 : Math.min(4, Math.floor((v - lo) / (hi - lo + 1e-9) * 5));
+      const fill = k < 0 ? css('--seq-0') : css(steps[k]);
+      const r = el('rect', { x: j * cs + 1, y: i * cs + 1, width: cs - 2, height: cs - 2, rx: 3, fill }, g);
+      if (cs >= 30 && i !== j) txt(g, j * cs + cs / 2, i * cs + cs / 2 + 4, v, { 'text-anchor': 'middle', fill: lum(fill) > 0.45 ? '#0b0b0b' : '#ffffff', 'font-size': 10 });
+      r.addEventListener('pointermove', ev => { r.setAttribute('stroke', css('--ink')); showTip(ev, `${a} vs ${b}`, [{ value: v + ' / 100', label: 'same outcome' }]); });
+      r.addEventListener('pointerleave', () => { r.removeAttribute('stroke'); hideTip(); });
+    });
+  });
+  F.svg.setAttribute('viewBox', `0 0 ${F.w} ${n * cs + 30}`);
+}
+
+// ---- tables ----
+function table(id, head, rows, numCols = []) {
+  const box = document.getElementById(id); box.replaceChildren();
+  const t = document.createElement('table'), thead = t.createTHead().insertRow();
+  head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (numCols.includes(i)) th.className = 'n'; thead.appendChild(th); });
+  const tb = t.createTBody();
+  rows.forEach(r => { const tr = tb.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (numCols.includes(i)) td.className = 'n'; }); });
+  box.appendChild(t);
+}
+document.querySelectorAll('[data-table]').forEach(b => b.addEventListener('click', () => {
+  const box = document.getElementById('t-' + b.dataset.table); box.hidden = !box.hidden; b.textContent = box.hidden ? 'Show table' : 'Hide table';
+}));
+
+
+// ---- scatter: pts {x, y, color, shape, tip} ----
+function scatter(container, o) {
+  const F = frame(container, o.h || 260, { t: 12, r: 12, b: 38, l: 44 });
+  const g = el('g', { transform: `translate(${F.m.l},${F.m.t})` }, F.svg);
+  const X = v => v * F.iw, Y = v => F.ih - v * F.ih;
+  for (const t of niceTicks(0, 1, 5)) {
+    el('line', { x1: 0, x2: F.iw, y1: Y(t), y2: Y(t), stroke: css('--grid') }, g);
+    txt(g, -8, Y(t) + 4, pct(t), { 'text-anchor': 'end' });
+    txt(g, X(t), F.ih + 18, t.toFixed(1), { 'text-anchor': 'middle' });
+  }
+  txt(g, F.iw / 2, F.ih + 34, o.xlabel, { 'text-anchor': 'middle' });
+  const jit = (i) => ((i * 9301 + 49297) % 233280) / 233280 * 0.03 - 0.015;
+  o.pts.forEach((p, i) => {
+    const cx = X(p.x), cy = Y(Math.min(1, Math.max(0, p.y + jit(i))));
+    const m = p.hollow ? el('circle', { cx, cy, r: 4.5, fill: 'none', stroke: p.color, 'stroke-width': 1.6 }, g)
+                       : el('circle', { cx, cy, r: 4.5, fill: p.color, opacity: 0.8 }, g);
+    m.addEventListener('pointermove', ev => { m.setAttribute('r', 6.5); showTip(ev, p.tip, [{ color: p.color, value: pct(p.y), label: 'success; refusal-first ' + p.x.toFixed(2) }]); });
+    m.addEventListener('pointerleave', () => { m.setAttribute('r', 4.5); hideTip(); });
+  });
+}
+
+// ---- grid heatmap: rows x cols of k/10 ----
+function grid(container, rows, cols, cells) {
+  container.replaceChildren();
+  const w = Math.max(container.clientWidth, 280), lab = 40, top = 6, cw = Math.min(110, (w - lab) / cols.length), ch = 34;
+  const svg = el('svg', { viewBox: `0 0 ${w} ${rows.length * ch + 40}`, role: 'img' }, container);
+  const g = el('g', { transform: `translate(${lab},${top})` }, svg);
+  const steps = ['--seq-0', '--seq-1', '--seq-2', '--seq-3', '--seq-4', '--seq-5'];
+  rows.forEach((r, i) => {
+    txt(g, -8, i * ch + ch / 2 + 4, r, { 'text-anchor': 'end', fill: css('--ink') });
+    cols.forEach((c, j) => {
+      const v = cells[i][j], fill = css(steps[Math.min(5, Math.round(v / 2))]);
+      const rect = el('rect', { x: j * cw + 1, y: i * ch + 1, width: cw - 2, height: ch - 2, rx: 4, fill }, g);
+      txt(g, j * cw + cw / 2, i * ch + ch / 2 + 4, v + '/10', { 'text-anchor': 'middle', fill: lum(fill) > 0.45 ? '#0b0b0b' : '#ffffff' });
+      rect.addEventListener('pointermove', ev => showTip(ev, `${r} · ${c}`, [{ value: v + ' / 10', label: 'sampled outputs judged complied' }]));
+      rect.addEventListener('pointerleave', hideTip);
+    });
+  });
+  cols.forEach((c, j) => txt(g, j * cw + cw / 2, rows.length * ch + 16, c, { 'text-anchor': 'middle', 'font-size': 10 }));
+}
+
+function seg(id, cb) {
+  const box = document.getElementById(id);
+  box.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    box.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    cb(b.dataset.k);
+  }));
+  return () => box.querySelector('[aria-pressed="true"]').dataset.k;
+}
+
+// ---- sections ----
+let echoMode = 'fixed', hmModel = 'qwen2.5-1.5b', defModel = 'qwen2.5-1.5b';
+const AN = D.attack_names;
+
+function rRes() {
+  const key = echoMode === 'fixed' ? 'asr' : 'raw';
+  legend('l-res', MS.map(m => ({ name: SHORT[m], color: css(MCOL[m]), box: true })));
+  gbars(document.getElementById('c-res'), { max: 1, fmt: pct, groups: ['Direct', ...ATK.map(a => AN[a])], rot: true, h: 300,
+    series: MS.map(m => ({ name: SHORT[m], color: css(MCOL[m]), values: [D.direct[m], ...ATK.map(a => D.res[a][m][key])] })) });
+  table('t-res', ['Attack', ...MS.flatMap(m => [SHORT[m] + ' ASR', '95% CI', 'raw judge'])],
+    ATK.map(a => [AN[a], ...MS.flatMap(m => { const r = D.res[a][m]; return [f(r.asr), `[${f(r.ci[0])}, ${f(r.ci[1])}]`, f(r.raw)]; })]), [1, 3, 4, 6]);
+}
+function rHm() {
+  grid(document.getElementById('c-hm'), ATK, D.bnames, ATK.map(a => D.s1.boot[hmModel][a].per_behavior.map(v => Math.round(v * 10))));
+  table('t-ci', ['Model', 'Attack', 'Mean', 'Wilson 95%', 'Cluster bootstrap 95%', 'Behaviours with any success'],
+    MS.flatMap(m => ATK.map(a => { const b = D.s1.boot[m][a]; return [SHORT[m], AN[a], f(b.mean), `[${f(b.wilson_ci[0])}, ${f(b.wilson_ci[1])}]`, `[${f(b.boot_ci[0])}, ${f(b.boot_ci[1])}]`, b.behaviors_with_any + '/5']; })), [2, 5]);
+}
+function rWhy() {
+  legend('l-ft', MS.map(m => ({ name: SHORT[m], color: css(MCOL[m]), box: true })));
+  gbars(document.getElementById('c-ft'), { max: 1, fmt: v => v.toFixed(1), groups: CONDS, h: 240,
+    series: MS.map(m => ({ name: SHORT[m], color: css(MCOL[m]), values: CONDS.map(c => D.ft[m][c]) })) });
+  legend('l-sc', [...MS.map(m => ({ name: SHORT[m], color: css(MCOL[m]) })), { name: 'hollow = base64', color: css('--ink-3') }]);
+  scatter(document.getElementById('c-sc'), { xlabel: 'refusal-first probability', h: 240,
+    pts: D.s3.points.map(p => ({ x: p.p_ref, y: p.asr, color: css(MCOL[p.model]), hollow: p.cond === 'A4', tip: `${SHORT[p.model]} · ${p.cond} · ${p.bid}` })) });
+}
+function rB64() {
+  table('t-b64', ['Model', 'Mean recall of the request\'s content words', 'Outputs recalling ≥ half', 'Outputs'],
+    Object.entries(D.s4).map(([m, v]) => [SHORT[m], f(v.mean_recall), pct(v.share_ge_half), v.n]), [1, 2, 3]);
+}
+function rSizes() {
+  const ms = D.ladder.filter(m => D.s5[m]);
+  const claim = document.getElementById('sizes-claim');
+  if (ms.length <= 2) { claim.textContent = 'Runs on 0.5B, 3B and 14B are in progress; this section fills in when they land.'; }
+  else {
+    const a5 = ms.map(m => D.s5[m].A5 && D.s5[m].A5.asr_ex_echo);
+    claim.textContent = `Prefix injection goes from ${pct(a5[0])} at ${SHORT[ms[0]]} to ${pct(a5[a5.length - 1])} at ${SHORT[ms[ms.length - 1]]}; the direct baseline stays near zero at every size.`;
+  }
+  legend('l-sz', CONDS.map(c => ({ name: c === 'direct' ? 'Direct' : AN[c], color: css(CCOL[c]) })));
+  lineChart(document.getElementById('c-sz'), { xlog: true, ymin: 0, ymax: 1, yfmt: pct, vfmt: pct, xname: 'params (B)', xlabel: 'parameters (billions)',
+    xticks: ms.map(m => D.params[m]),
+    series: CONDS.map(c => ({ name: c === 'direct' ? 'Direct' : AN[c], color: css(CCOL[c]), dash: c === 'direct' ? '4 3' : '',
+      pts: ms.filter(m => D.s5[m][c]).map(m => ({ x: D.params[m], y: D.s5[m][c].asr_ex_echo })) })) });
+  table('t-sz', ['Condition', ...ms.map(m => SHORT[m])], CONDS.map(c => [c === 'direct' ? 'Direct' : AN[c], ...ms.map(m => D.s5[m][c] ? f(D.s5[m][c].asr_ex_echo) : '—')]), ms.map((_, i) => i + 1));
+  const sm = Object.keys(D.s6)[0];
+  if (sm) table('t-smol', ['Condition', 'SmolLM2-1.7B ASR', 'Qwen 1.5B ASR'],
+    CONDS.map(c => [c === 'direct' ? 'Direct' : AN[c], D.s6[sm][c] ? f(D.s6[sm][c].asr_ex_echo) : '—', c === 'direct' ? f(D.direct['qwen2.5-1.5b']) : f(D.res[c]['qwen2.5-1.5b'].asr)]), [1, 2]);
+}
+function rDef() {
+  const sr = D.s7.self_reminder[defModel] || {}, gd = D.s7.guard[defModel] || {};
+  const claim = document.getElementById('def-claim');
+  if (!Object.keys(sr).length && !Object.keys(gd).length) { claim.textContent = 'Defence runs are in progress; this section fills in when they land.'; }
+  else claim.textContent = 'Compare each attack with no defence, with the self-reminder prompt, behind the guard on the input only, and behind it on both input and output.';
+  const S = [['No defence', '--s-base', a => D.res[a][defModel].asr], ['Self-reminder', '--s3', a => sr[a] && sr[a].sr.asr_ex_echo],
+             ['Guard on input', '--s1', a => gd[a] && gd[a].asr_input], ['Guard on input + output', '--s2', a => gd[a] && gd[a].asr_both]];
+  legend('l-def', S.map(s => ({ name: s[0], color: css(s[1]), box: true })));
+  gbars(document.getElementById('c-def'), { max: 1, fmt: pct, groups: ATK.map(a => AN[a]), rot: true, h: 300,
+    series: S.map(s => ({ name: s[0], color: css(s[1]), values: ATK.map(a => s[2](a) ?? 0) })) });
+}
+function rJudge() {
+  const c = D.s2.confusion;
+  table('t-judge', ['Condition', 'Refused', 'Partial', 'Complied'], CONDS.map(k => [k === 'direct' ? 'Direct' : AN[k],
+    ...['refused', 'partial', 'complied'].map(h => `${c[k][h][1]} / ${c[k][h][0] + c[k][h][1]}`)]), [1, 2, 3]);
+}
+function rEcho() {
+  legend('l-a3', MS.map(m => ({ name: SHORT[m], color: css(MCOL[m]) })));
+  lineChart(document.getElementById('c-a3'), { ymin: 0, ymax: 1, yfmt: pct, vfmt: pct, xname: 'shots', xlabel: 'shots (k)', h: 240,
+    series: MS.flatMap(m => [
+      { name: SHORT[m] + ' raw', color: css(MCOL[m]), dash: '5 4', pts: D.a3curve[m].map(p => ({ x: p.k, y: p.raw })) },
+      { name: SHORT[m] + ' echoes removed', color: css(MCOL[m]), pts: D.a3curve[m].map(p => ({ x: p.k, y: p.fixed })) }]) });
+  document.getElementById('echo-ex').textContent = D.echo_example;
+}
+function rCost() {
+  const ms = D.ladder.filter(m => D.s9[m]);
+  table('t-cost', ['Condition', 'Prompt tokens', ...ms.map(m => SHORT[m])], CONDS.map(c => [c === 'direct' ? 'Direct' : AN[c],
+    Math.round(D.s9[ms[0]][c].prompt_tokens), ...ms.map(m => D.s9[m][c] ? `${Math.round(D.s9[m][c].new_tokens)} tok / ${D.s9[m][c].batch_seconds.toFixed(1)} s` : '—')]), [1]);
+}
+function rAtk() { table('t-atk', ['Attack', 'Type', 'Source'], ATK.map(a => [AN[a], D.attack_types[a], D.attack_src[a]])); }
+
+// ---- explorer ----
+let xFilter = 'all';
+function initExplorer() {
+  const mSel = document.getElementById('x-model'), cSel = document.getElementById('x-cond');
+  for (const m of Object.keys(D.cells)) mSel.add(new Option(SHORT[m] || m, m));
+  for (const c of CONDS) cSel.add(new Option(c === 'direct' ? 'Direct' : AN[c], c));
+  mSel.onchange = cSel.onchange = drawCells;
+  seg('seg-x', k => { xFilter = k; drawCells(); });
+  drawCells();
+}
+function drawCells() {
+  const m = document.getElementById('x-model').value, c = document.getElementById('x-cond').value;
+  const box = document.getElementById('x-list'); box.replaceChildren();
+  for (const r of (D.cells[m] || []).filter(r => r.cond === c)) {
+    if (xFilter === 'hit' && !r.k) continue;
+    if (xFilter === 'miss' && r.k) continue;
+    const d = document.createElement('details'); d.className = 'q';
+    const s = document.createElement('summary');
+    const a = document.createElement('div');
+    a.innerHTML = '<div class="qt"></div><div class="qc"></div>';
+    a.querySelector('.qt').textContent = r.goal;
+    a.querySelector('.qc').textContent = `${r.bid} · ${r.cat}`;
+    const dots = document.createElement('div'); dots.className = 'dots';
+    for (let i = 0; i < r.n; i++) { const x = document.createElement('div'); x.className = 'dot ' + (i < r.k ? 'no' : 'ok'); x.title = i < r.k ? 'judged complied' : 'not complied'; dots.appendChild(x); }
+    s.append(a, dots); d.appendChild(s);
+    const body = document.createElement('div'); body.className = 'body';
+    const p = document.createElement('p'); p.className = 'small';
+    p.textContent = `Judge on greedy output: ${r.greedy}. Hand label: ${r.label}. Sampled: ${r.k}/${r.n} judged complied${r.echo ? ` (${r.echo} are echoes)` : ''}.`;
+    const g = document.createElement('div'); g.className = 'gen'; g.textContent = r.snippet;
+    body.append(p, g); d.appendChild(body); box.appendChild(d);
+  }
+  if (!box.children.length) box.textContent = 'No cells match.';
+}
+
+function renderAll() { rRes(); rHm(); rWhy(); rB64(); rSizes(); rDef(); rJudge(); rEcho(); rCost(); rAtk(); }
+seg('seg-echo', k => { echoMode = k; rRes(); });
+seg('seg-hm', k => { hmModel = k; rHm(); });
+seg('seg-def', k => { defModel = k; rDef(); });
+renderAll(); initExplorer();
+let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(renderAll, 120); });
+</script>
+</body>
+</html>
