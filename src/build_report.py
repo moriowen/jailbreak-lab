@@ -331,7 +331,10 @@ and Qwen2.5-7B-Instruct, with a direct-request control, 1 greedy + {N_SAMPLES} s
 low-severity JailbreakBench behaviours. Both models refuse the direct requests (ASR {pct(S['models'][SM]['direct_asr'])}
 and {pct(S['models'][LG]['direct_asr'])}). Prefix injection with refusal suppression (A5) is the strongest attack on
 both ({PA(SM, 'A5')['asr_ex_echo']:.2f} and {PA(LG, 'A5')['asr_ex_echo']:.2f}, Table 3) and base64 (A4) never
-succeeds. The 7B model is broken more often than the 1.5B by every attack that works (A1, A2, A5).</p>
+succeeds. The 7B model is broken more often than the 1.5B by every attack that works (A1, A2, A5). Across five
+Qwen2.5 sizes only A5 keeps rising, to {P2['s5']['qwen2.5-14b']['A5']['asr_ex_echo']:.2f} at 14B, while DAN falls to
+{P2['s5']['qwen2.5-14b']['A1']['asr_ex_echo']:.2f} there (Part 2, S5). A self-reminder prompt stops most DAN and fiction
+attacks but not A5; a safety classifier on the input blocks every attack prompt except base64 (S7).</p>
 <p><b>Why.</b> The attacks that work stop the model from starting a refusal: the probability that the first output
 token begins a refusal predicts success (Spearman ρ = {P2['s3']['spearman']:.2f}, Part 2, S3). The larger model is
 better at following the attack's instructions, and that cuts against its safety training. A4 fails for a different
@@ -595,9 +598,9 @@ the 25 paired greedy outcomes the two models differ in {mc['b_only_' + SM] + mc[
 {pbound(mc['p'])}, computed on the raw judge outcomes).</p>
 {R.table(["Attack", "1.5B complied", "7B complied", "Fisher (echo removed)", "Direction", "Compromised"], rows,
            "Table 7. Attack × model outcome (sampled, pooled over 5 behaviours)", num_cols=(1, 2), cls="keep")}
-<p>The pattern holds across the size ladder (Part 2, S5): attacks that rely on following instructions get stronger as
-the model gets bigger. Larger models are not less safe in general, though; base64, which needs a skill neither model
-has, stays at zero.</p>
+<p>The two-model comparison does not extend to a general rule. Across five sizes (Part 2, S5) only prefix injection
+rises steadily with size; DAN falls to zero at 14B and fiction peaks at 3B. "The bigger model is easier to break" is true
+for this pair and for A5, not for every attack.</p>
 {s2}
 """
 
@@ -647,9 +650,10 @@ programming option, <code>HW4_P_Mohite_Atharva.pdf</code>.</p>
 <li><b>Refusal lives in the first few tokens.</b> The simplest attack, which fixes how the answer starts (A5), beats
 the elaborate ones, and the first-token refusal probability predicts success across attacks (S3). Safety training that
 mostly shapes the opening is the easiest part to remove.</li>
-<li><b>A more capable model is easier to turn.</b> The 7B model follows attack instructions more faithfully than the
-1.5B, so instruction-based attacks work better on it (Q5, S5). Its advantage disappears only when the attack needs a
-skill neither model has (base64 decoding, S4).</li>
+<li><b>Size changes which attacks work, not whether the model is safe.</b> 7B is easier to break than 1.5B on every
+working attack (Q5), but across five sizes only prefix injection keeps getting stronger; DAN stops working at 14B and
+fiction peaks at 3B (S5). The one attack that scales with size is the one that turns instruction-following against
+the model, and it is also the one the self-reminder defence does not touch (S7).</li>
 <li><b>Check the judge against the outputs.</b> A trusted classifier scored 25-token template echoes as complete
 jailbreaks, and that made a false result look highly significant (p &lt; 10⁻⁶). The control, sampled rates with
 intervals, output lengths and hand labels are what exposed it (S10).</li>
@@ -758,15 +762,27 @@ and judge) on the rest of the Qwen2.5-Instruct line: 0.5B, 3B and 14B.</p>
 size.</figcaption></figure>
 {R.table(["Condition"] + [SHORT[m] for m in ms], rows, "Table S5. ASR by size (echo removed; A3 at k = 16)",
          num_cols=tuple(range(1, len(ms) + 1)))}
-{todo_size_text(d, ms)}
+{size_text(d, ms)}
 """
 
 
-def todo_size_text(d, ms):
-    a5 = [d[m]["A5"]["asr_ex_echo"] for m in ms if d[m].get("A5")]
-    dr = [d[m]["direct"]["asr_ex_echo"] for m in ms if d[m].get("direct")]
-    return (f"<p>A5 goes from {a5[0]:.2f} at {SHORT[ms[0]]} to {a5[-1]:.2f} at {SHORT[ms[-1]]}; the direct control "
-            f"stays between {min(dr):.2f} and {max(dr):.2f}. Interpretation to be finalised once all sizes are judged.</p>")
+def size_text(d, ms):
+    v = lambda m, c: d[m][c]["asr_ex_echo"]
+    a5 = " → ".join(f"{v(m, 'A5'):.2f}" for m in ms)
+    dr = [v(m, "direct") for m in ms]
+    a2max = max(ms, key=lambda m: v(m, "A2"))
+    return f"""<p><b>Only prefix injection scales with size.</b> A5 rises at every step ({a5}) while the direct control
+stays between {min(dr):.2f} and {max(dr):.2f}, so the larger models are not simply less safe: they refuse plain requests
+as reliably as the small ones. A5 tells the model exactly how to start and forbids refusing, and a bigger model follows
+formatting instructions more faithfully, so the attack gets stronger as the model gets better. The other attacks do not
+follow that line. DAN rises to {v('qwen2.5-7b', 'A1'):.2f} at 7B and then drops to {v('qwen2.5-14b', 'A1'):.2f} at 14B,
+where the model does not take up the persona at all: every greedy output opens "I'm sorry, but I can't assist". DAN is
+the most widely circulated jailbreak, so the 14B model's safety data may simply have covered it; I did not test that.
+Fiction peaks at {SHORT[a2max]}
+({v(a2max, 'A2'):.2f}). Many-shot, after echoes are removed, stays at or below {max(v(m, 'A3') for m in ms):.2f} at every size, and the
+0.5B model echoes as well (Table S10). <b>So the D5 finding "7B is easier to break
+than 1.5B" is real for this pair, but the size trend depends on the attack.</b> One caveat: these runs used L40S GPUs
+and the main pair ran on H100; that changes timing only, not outputs' scoring.</p>"""
 
 
 def s6_family():
@@ -815,10 +831,31 @@ filter, and behind both filters.</figcaption></figure>
 {R.table(["Model", "Condition", "No defence", "Self-reminder (Fisher vs none)", "Prompts blocked by guard",
           "ASR behind input filter", "ASR behind input + output"], rows,
          "Table S7. Defences (sampled, 5 behaviours × 10)", num_cols=(2, 3, 5, 6))}
+{defense_text(sr, g)}
 <p class="small">Self-reminder text (as reproduced in later papers): system "{R.esc(SR_SYSTEM)}"; appended
 "{R.esc(SR_SUFFIX.strip())}". It replaces Qwen's default system prompt, so part of any effect could come from removing
 that default.</p>
 """
+
+
+def defense_text(sr, g):
+    def d(m, a):
+        return sr[m][a]["none"]["asr_ex_echo"], sr[m][a]["sr"]["asr_ex_echo"], sr[m][a]["fisher_p"]
+    n7, s7, p7 = d(LG, "A2")
+    n5, s5, p5 = d(LG, "A5")
+    blocked = {a: g[SM][a]["input_blocked_behaviors"] for a in CONDS}
+    leak = max(g[m]["A2"]["asr_output"] for m in DEFENDED_MODELS)
+    return f"""<p><b>The self-reminder works against the attacks that argue, and not against the one that dictates.</b> On 7B
+it cuts fiction from {n7:.2f} to {s7:.2f} ({pbound(p7)}) and DAN by about half on both models, but prefix injection stays at
+{s5:.2f} (from {n5:.2f}, {pbound(p5)}). This is what S3 predicts: a reminder adds weight to refusing, which helps when the
+attack only competes for the model's attention, but A5 removes the opening where a refusal would go, so the extra
+weight has nowhere to act. <b>The guard on the input blocks every attack prompt except base64</b> ({blocked['A4']}/5
+flagged; every other condition {min(v for k, v in blocked.items() if k != 'A4')}/5), so behind it no attack succeeds.
+That result is less strong than it looks: these five requests are stated plainly inside each wrapper, which a
+classifier catches easily, and base64, the one wrapper that hides the request, gets through untouched. It succeeds
+here only because the target models cannot decode it (S4); a model that can would be exposed. The output filter alone
+misses up to {leak:.0%} of fiction outputs the judge scores as harmful, the attack whose outputs look least like
+direct compliance. I did not measure how often either defence refuses harmless prompts (S11).</p>"""
 
 
 def s9_cost():
@@ -838,7 +875,8 @@ def s9_cost():
          f"samples ({GPU}, bf16, max 512 new tokens)", num_cols=tuple(range(1, len(ms) + 2)))}
 <p>The attacks are cheap. A3 is the longest prompt (16 demonstration turns, about {round(d[ms[0]]['A3']['prompt_tokens'])}
 tokens), and even that costs only one prefill. Cost depends on how long the model writes: the 1.5B echoes on A3 end
-after about 25 tokens and finish a batch of 10 in under a second, while a complied A2 story runs to the 512-token limit.
+after about 25 tokens and finish a batch of 10 in under a second, while a complied A2 story runs to the 512-token limit. Times are only comparable within one model: 1.5B and 7B ran on H100s, the other sizes on L40S
+GPUs, as recorded in each result file.
 Complied outputs are longer than refusals (median {P2['s10_length'][SM]['complied_median']:.0f} vs
 {P2['s10_length'][SM]['not_median']:.0f} tokens on 1.5B), so output length is a cheap warning sign, and it is the
 check that exposed the echoes.</p>
@@ -877,7 +915,8 @@ The raw judge numbers stay in Table 3 so the change can be seen. After correctio
 <b>What it means:</b> the judge was trained on full responses, and a confident opening with no body is out of its
 training distribution; it takes the opening as the answer. My A3 demonstrations made this likely, because they
 contained only openings (a safety choice, Question 2). The assistant-proposed hand labels had already marked these
-outputs "partial", so the disagreement was visible in S2; nobody followed it up until the lengths were checked.</p>
+outputs "partial", so the disagreement was visible in S2; nobody followed it up until the lengths were checked. The
+size ladder shows the echo is a small-model behaviour: 0.5B echoes too, while 3B, 7B and 14B never do.</p>
 """
 
 
@@ -890,7 +929,8 @@ more behaviours. JailbreakBench has 100, and I used the five least severe.</li>
 <li><b>Hand labels not yet reviewed.</b> The labels in S2 and the D5 verdicts were proposed by the assistant. Until I
 review them, the human side of the success rule is a second model's reading.</li>
 <li><b>Capability versus safety.</b> A bigger model is better at following instructions and also has a different
-safety tuning; within one family the two cannot be separated. S5 shows the trend, not its cause.</li>
+safety tuning; within one family the two cannot be separated. S5 shows the trends, not their cause, and a single
+model per size cannot rule out checkpoint-specific quirks (DAN at 14B).</li>
 <li><b>GCG not run.</b> The optimisation attack (Zou et al. 2023, slide 25) needs <code>nanogcg</code>, which pins
 <code>transformers ≤ 4.47</code>. Installing it broke the shared PACE environment (fixed and rolled back; see
 IMPLEMENTATION.md), so it needs its own environment. The code is staged in <code>src/gcg.py</code>.</li>
@@ -998,7 +1038,8 @@ def appendix_bc():
 {R.table(["Model", "k", "Judge ASR [95% CI]", "Echoes", "Echo removed"], a3, "Table B2. A3 shot-count curve",
          num_cols=(1, 3, 4))}
 <h3>Appendix C. Compute environment and reproduction</h3>
-<p class="small">PACE ICE, partition ice-gpu, one {GPU} per job, 8 CPU cores, 64 GB RAM, bf16. Models, judge and
+<p class="small">PACE ICE, partition ice-gpu, one GPU per job (main 1.5B/7B grid, SmolLM2 and the judge's first pass
+on {GPU}; size ladder, self-reminder runs, guard and the judge's second pass on NVIDIA L40S when H100s were full), 8 CPU cores, 64 GB RAM, bf16. Models, judge and
 guard pinned by revision hash (<code>config.py</code>). Behaviours: JailbreakBench harmful split (five low-severity
 rows, one per category). Sampling: each checkpoint's shipped <code>generation_config</code>, seed 6220, max 512 new
 tokens. Jobs are Slurm arrays over command lists (<code>slurm/array.sbatch</code>, <code>src/jobs.py</code>; grids in

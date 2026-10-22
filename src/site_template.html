@@ -146,8 +146,9 @@ pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-
   <p class="lede">I ran five published jailbreak attacks against Qwen2.5-1.5B-Instruct and Qwen2.5-7B-Instruct, with a
   direct-request control and 10 sampled outputs per attack and behaviour. Both models refuse the plain requests. The
   attack that forces a compliant opening and forbids refusals breaks the 7B model in
-  <b data-v="pct(D.res.A5['qwen2.5-7b'].asr)"></b> of samples. The larger model is the easier one to break, and the
-  probability of a refusal-first token predicts which attacks work.</p>
+  <b data-v="pct(D.res.A5['qwen2.5-7b'].asr)"></b> of samples, and <b data-v="pct(D.s5['qwen2.5-14b'].A5.asr_ex_echo)"></b>
+  at 14B. Across five model sizes it is the only attack that keeps getting stronger, and it is the one a safety reminder
+  cannot stop.</p>
   <div class="meta">Atharva Mohite · October 2026 · <span data-v="D.n_samples"></span> samples × 5 behaviours per cell · PACE GPUs · <a data-href="D.repo">Code and aggregate results on GitHub</a></div>
   <div class="stats">
     <div class="stat"><div class="v"><span data-v="pct(D.direct['qwen2.5-1.5b'])"></span> / <span data-v="pct(D.direct['qwen2.5-7b'])"></span></div><div class="k">direct requests carried out, 1.5B / 7B (the safe baseline)</div></div>
@@ -161,11 +162,11 @@ pre { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-
   <h2>What the experiment shows</h2>
   <ol class="findings">
     <li><b>Refusal lives in the first few tokens.</b>The simplest attack, which dictates how the answer begins and bans apologies, is the strongest on both models. Across all cells, the lower the chance the first token starts a refusal, the higher the success rate. <a href="#why">Mechanism</a></li>
-    <li><b>The bigger model is easier to turn.</b>Every attack that works at all works better on 7B. It follows the attack's instructions more faithfully, and that works against its safety training. <a href="#results">Results</a> · <a href="#sizes">Across sizes</a></li>
+    <li><b>Size changes which attacks work.</b>Every working attack does better on 7B than on 1.5B, but across 0.5B to 14B only prefix injection keeps rising. DAN stops working entirely at 14B, and nested fiction peaks at 3B. <a href="#results">Results</a> · <a href="#sizes">Across sizes</a></li>
     <li><b>Base64 fails for a boring reason.</b>On 7B the attack gets past the refusal, but neither model can decode the request, so they answer a hallucinated one. Zero success here says nothing about safety. <a href="#base64">Evidence</a></li>
     <li><b>A trusted judge can be fooled by an echo.</b>On many-shot, the small model copies the demonstration's opening line and stops. The HarmBench classifier scores that as a full jailbreak, which produced a fake "size effect" with p &lt; 10⁻⁶. <a href="#echo">The story</a></li>
     <li><b>Five behaviours are not fifty samples.</b>The same attack scores 0/10 on one behaviour and 10/10 on another. Intervals that resample behaviours are up to <span data-v="D.ci_ratio.toFixed(1)+'×'"></span> wider than ones that treat samples as independent. <a href="#behaviours">Per behaviour</a></li>
-    <li><b>Two cheap defences, attack by attack.</b>A self-reminder prompt and a separate safety classifier on input and output, neither needing retraining, compared on every attack. <a href="#defences">Defences</a></li>
+    <li><b>A reminder stops the attacks that argue, not the one that dictates.</b>A responsible-AI system prompt cuts DAN and fiction sharply but leaves prefix injection untouched. A safety classifier on the input blocks every attack prompt except base64. <a href="#defences">Defences</a></li>
   </ol>
 </section>
 
@@ -646,7 +647,7 @@ function rDef() {
   const sr = D.s7.self_reminder[defModel] || {}, gd = D.s7.guard[defModel] || {};
   const claim = document.getElementById('def-claim');
   if (!Object.keys(sr).length && !Object.keys(gd).length) { claim.textContent = 'Defence runs are in progress; this section fills in when they land.'; }
-  else claim.textContent = 'Compare each attack with no defence, with the self-reminder prompt, behind the guard on the input only, and behind it on both input and output.';
+  else { const a2 = sr.A2, a5 = sr.A5; claim.textContent = `On ${SHORT[defModel]}, the self-reminder cuts nested fiction from ${pct(a2.none.asr_ex_echo)} to ${pct(a2.sr.asr_ex_echo)} but prefix injection ${pct(a5.none.asr_ex_echo) === pct(a5.sr.asr_ex_echo) ? 'stays at ' + pct(a5.sr.asr_ex_echo) : 'only falls from ' + pct(a5.none.asr_ex_echo) + ' to ' + pct(a5.sr.asr_ex_echo)}. The guard flags every attack prompt except base64 (${gd.A4.input_blocked_behaviors}/5), so nothing gets through it here; base64 slips past, and is harmless only because these models cannot decode it.`; }
   const S = [['No defence', '--s-base', a => D.res[a][defModel].asr], ['Self-reminder', '--s3', a => sr[a] && sr[a].sr.asr_ex_echo],
              ['Guard on input', '--s1', a => gd[a] && gd[a].asr_input], ['Guard on input + output', '--s2', a => gd[a] && gd[a].asr_both]];
   legend('l-def', S.map(s => ({ name: s[0], color: css(s[1]), box: true })));
