@@ -30,8 +30,10 @@ adapted, not rewritten.
 - The repo (`moriowen/jailbreak-lab`) is public and the site is public
   (https://jailbreak-lab-lilac.vercel.app; user, Oct 22). Both carry aggregates only: the site
   shows each output's first line, refusals whole; raw `gen_*`/`judge_*` never leave `results/`.
-- Don't write the user's critique (handout D6 / rubric 4b). Candidate weaknesses go in
-  `report/critique-notes.md`, and the report carries a marked placeholder.
+- ~~Don't write the user's critique.~~ Lifted by the user on Oct 22: the assistant drafts the 4b
+  critiques and the Q6 table in HW3's format (requirements met / overlooked, oversimplified or
+  miscalculated with evidence / refined synthesis), from `critique-notes.md` and Part 2. The user
+  reviews them so they read as their own words.
 
 ## Decisions
 

@@ -94,10 +94,6 @@ def redact(text, complied, keep_lines=1):
     return R.esc(head) + (f' <span class="small">[… ~{rest} words {note}]</span>' if rest else "")
 
 
-def todo(text):
-    return f'<span class="todo"><i>[YOUR CRITIQUE: {text}]</i></span>'
-
-
 # ---------- Step 2 pieces (HW3's helpers) ----------
 
 _QUOTED = set()
@@ -379,10 +375,16 @@ def q1():
 PACE, nothing sent to a commercial API, two sizes from one family. That turned model choice into picking from a
 small set that fits those limits. Pinning each model to a revision hash means every number in the report can be
 traced to exact weights.""",
-        todo("does the AI's pair meet D1 (name, version, company, size, URL)? What did it overlook? Hooks: it "
-             "picked one family so that size is the only difference, but larger also means better at following "
-             "instructions, which is a confound (Part 2, S5); it did not suggest a model with weak safety tuning "
-             "as a contrast (I added SmolLM2 later, S6)."), "P6")
+        f"""Requirements met: D1 asks for name, version, company, size and URL for each model, and Table 1 gives all
+five for both. What it overlooked: picking one family isolates size from vendor and data, but it does not isolate size
+from capability. The AI's plan allowed for capability only on the failure side: a "partial" label for a model too weak to
+comply, and a prediction that base64 would work on 7B and not on 1.5B (it worked on neither). It had no way to tell
+whether 7B complies more because its safety is weaker or because it follows the attack's instructions better; its own
+round-2 claim C13 noticed that only after the results. It also proposed exactly two sizes, the
+handout minimum. With only 1.5B and 7B, "7B is easier to break" looks like a general size effect; the three extra sizes
+in Part 2 show it is not (DAN falls to {P2['s5']['qwen2.5-14b']['A1']['asr_ex_echo']:.2f} at 14B, S5). Refined
+synthesis: the pair satisfies D1 and isolates size from vendor, but two points cannot show a size trend, so any size
+claim in Questions 4 and 5 has to be read as a claim about this pair.""", "P6")
     return f"""
 <h2 class="q">Question 1. The two LLMs: name, version, company, size, download URL (deliverable 1)</h2>
 <h3>Step 1: Final answer (AI generated)</h3>
@@ -424,10 +426,15 @@ def q2():
 every attack has a citation and anyone can reproduce it, and I could not tune the wording until it worked, which
 would have inflated the success rates. Rendering every prompt in one function means the text in this report and the
 text sent to the model are the same text.""",
-        todo("did the five attacks meet D2 (five types, description, concrete example, URL + citation)? Hooks: "
-             "the handout lists 'indirect', but a chat model with no tools or documents has no indirect channel, "
-             "so A4 stands in for it; A3's demonstrations contain only the opening line of an answer, which makes it "
-             "weaker than Anil et al.'s many-shot attack, and it caused the echo problem (S10)."), "P4, P5")
+        """Requirements met: five attacks, each a different lecture type, with a description, a concrete rendered
+example, and a URL and citation (Table 2). What it oversimplified: the handout lists "indirect" attacks, and the AI
+mapped that to base64. Base64 is obfuscation, not indirect injection; a bare chat model has no document or tool channel
+for an indirect attack, so the honest statement is that this type could not be run, with A4 as the nearest substitute.
+What it did not foresee: for safety, the A3 demonstrations contain only an opening line ("Sure, here is …") and no
+answer. That makes A3 much weaker than Anil et al.'s many-shot attack, which uses hundreds of full demonstrations, and
+it is exactly what produced the echo artefact (S10): the small model copied the opening and stopped. Refined synthesis:
+the five attacks meet D2, but A3 is a weakened many-shot attack and A4 stands in for a type that could not be tested
+here.""", "P4, P5")
     return f"""
 <h2 class="q">Question 2. Five jailbreak attacks, Attack-1 to Attack-5 (deliverable 2)</h2>
 <h3>Step 1: Final answer (AI generated)</h3>
@@ -495,9 +502,15 @@ def q3():
 greedy output is a single draw, and in 11 of 50 cells it disagrees with the majority of the samples (Part 2, S1).
 Outputs are cut to their first line in the report because the full text is harmful content. The full text stays
 in <code>results/</code> on PACE and is not in the ZIP.""",
-        todo("hooks: P9 'generate them regardless' meant the assistant proposed the 120 hand labels itself, so the "
-             "'Hand label' column is the AI's opinion until I review it; the judge column for A3 on 1.5B was wrong "
-             "(echoes), which only came out when the output lengths were checked."), "P7")
+        f"""Requirements met: ten pairs, five per model, each with the attack and the model's result (Tables 4 and 5).
+What the first version overlooked: it showed two examples, one attack on each model, and put the other eight in a
+rate table, which does not meet "five pairs for each LLM". It also treated one greedy output as "the AI result"; in
+{P2['s1']['greedy_vs_majority']['n'] - P2['s1']['greedy_vs_majority']['same']} of
+{P2['s1']['greedy_vs_majority']['n']} cells that single output disagrees with the majority of its ten samples (S1),
+which is why the sampled count now sits beside every pair. Two columns needed correcting: the judge marked the 1.5B
+many-shot outputs as complied when they are echoes, and the "hand label" column was proposed by the assistant after my
+P9, so it is a second model's reading until I review it. Refined synthesis: the ten pairs are correct as examples, but
+each one is one draw, and the rate beside it is the result.""", "P7")
     return f"""
 <h2 class="q">Question 3. Five &lt;attack, AI result&gt; pairs for each LLM, ten in total (deliverable 3)</h2>
 <h3>Step 1: Final answer (AI generated)</h3>
@@ -544,9 +557,18 @@ to P10, and both are recorded word for word in the analysis files. What I decide
 file unchanged instead of letting later rounds fix them silently, so that Question 6 can critique the original
 claims. Tying each mechanism to a number from this experiment (the first-token drop, decode recall, echo counts)
 instead of only citing a paper is what caught the A3 error.""",
-        todo("go claim by claim (C1 to C12) and say which survive. Hooks: C3 (A3 'stronger prior resists override') "
-             "rests on judge successes that are echoes; C4 calls A4 a capability limit, which S4's recall supports; "
-             "C8 'larger is less safe' does not separate safety from instruction-following."), "")
+        f"""Requirements met: D4 asks why each of the ten examples worked or failed, and Table 6 now answers each one;
+the AI's rounds answered per attack, not per example. Claim by claim: C5 (prefix injection works through shallow
+alignment) holds and gets stronger evidence later, since A5 keeps rising with size (S5) and is the one attack the
+self-reminder does not stop (S7). C4 (base64 fails because the model cannot decode) holds: content-word recall is
+{P2['s4']['qwen2.5-1.5b']['mean_recall']:.2f} and {P2['s4']['qwen2.5-7b']['mean_recall']:.2f} (S4). Its detail is
+loose, though: it says 1.5B "hallucinates Hello World", which only 8 of 55 outputs do. C1 rests its mechanism on a
+single greedy output split into "GPT:" and "DAN:" blocks, as its own C17 admits. C3 is wrong. It explains the A3 gap
+with "the larger model's stronger prior", but the small model's successes are echoes with no content (S10). The AI had
+the clue in hand: C11 mentions "the empty A3 'Sure, here is …' stubs", and C16 still calls A3 "the most robust" finding.
+That is a miscalculation, not an overreach: it built a mechanism on numbers it had reason to doubt and did not open the
+outputs. Refined synthesis: refusal-skipping explains A1, A2 and A5; A4 fails on capability; A3 shows nothing about
+size.""", "")
     return f"""
 <h2 class="q">Question 4. Why each of the ten attacks succeeded or failed (deliverable 4)</h2>
 <h3>Step 1: Final answer (AI generated)</h3>
@@ -583,10 +605,15 @@ def q5():
 choosing whichever comparison looked best afterwards. When the echo problem showed up, I changed one thing, which
 outputs count as compliance, applied it to every cell the same way, and kept the uncorrected judge numbers in Table 3
 so the change is visible.""",
-        todo("hooks: the AI's first summary called A3 the cleanest size effect (p < 1e-6), which was the judge "
-             "counting echoes; after correction, A1/A2/A5 all point the same way (7B more vulnerable) but only "
-             "A5 is clearly significant; McNemar on greedy outcomes treats 25 cells as independent when they "
-             "share behaviours."), "")
+        f"""Requirements met: one table of attack against model with success marked, and a comparison. What it got
+wrong: C7 called A3 "the clean size effect (p=1e-7)", which was the judge counting echoes; corrected, the A3 difference
+is {pbound(S['cross_model']['A3']['ex_echo']['fisher_p'])}. C8 turned the pair into a headline, "larger is less safe".
+The AI's own C13 and C18 narrowed that, correctly: A1 and A2 differ by less than their intervals
+({pbound(S['cross_model']['A1']['ex_echo']['fisher_p'])} and {pbound(S['cross_model']['A2']['ex_echo']['fisher_p'])}),
+and only A5 is significant ({pbound(S['cross_model']['A5']['ex_echo']['fisher_p'])}). The size ladder settles it: DAN
+drops to zero at 14B and fiction peaks at 3B (S5), so "larger is less safe" is false as a general rule. The McNemar test
+also counts 25 attack-behaviour cells as independent pairs when they share five behaviours (S1). Refined synthesis: 7B
+is broken more often than 1.5B by A5, and possibly A1 and A2; across sizes only A5 scales.""", "")
     return f"""
 <h2 class="q">Question 5. Results table and comparison of the two LLMs (deliverable 5)</h2>
 <h3>Step 1: Final answer (AI generated)</h3>
@@ -606,28 +633,63 @@ for this pair and for A5, not for every attack.</p>
 
 
 def q6():
+    sr7 = P2["s7"]["self_reminder"][LG]["A2"]
+    a2conf = P2["s2"]["confusion"]["A2"]["partial"]
     claims = [
-        ("C1/C5", "A1 works through competing objectives; the 7B output splits into a refusing voice and a DAN voice."),
-        ("C2/C12", "A2 is a real jailbreak on both models (judge ASR 0.50 and 0.68)."),
-        ("C3", "A3 shows that the larger model's stronger prior resists in-context override."),
-        ("C4/C14", "A4 fails because of a capability limit, not the guardrail."),
-        ("C6/C7", "A5 works through shallow alignment: forcing the opening skips the refusal."),
-        ("C8/C13", "Larger is less safe."),
-        ("C11", "The judge can be trusted (κ = 0.42 against the hand labels)."),
+        ("C1", "DAN works through competing objectives; the 7B greedy output splits into a refusing \"GPT:\" block "
+               "and a complying \"DAN:\" block.",
+         f"Partly. The mechanism fits, but the evidence is one greedy output, as C17 admits; the 7B rate is "
+         f"{PA(LG, 'A1')['asr_ex_echo']:.2f} {ci(PA(LG, 'A1')['ci_ex_echo'])}. At 14B DAN gets nothing and the model "
+         f"refuses outright (S5), so competing objectives do not explain when it stops working."),
+        ("C2, C12, C15", "Nested fiction succeeds (0.50 and 0.68) by reframing harm as creative writing; C12 and C15 "
+                         "add that the judge may overstate it.",
+         f"Agree with the correction, not the headline. The judge says yes to {a2conf[1]} of {sum(a2conf)} A2 outputs "
+         f"the labels call partial (S2). The effect is real but fragile: the self-reminder cuts 7B from "
+         f"{sr7['none']['asr_ex_echo']:.2f} to {sr7['sr']['asr_ex_echo']:.2f} (S7)."),
+        ("C3, C9, C16", "Many-shot works on 1.5B and fails on 7B because the larger model's stronger prior resists; C16: "
+                        "\"the A3 story is the most robust\".",
+         f"Disagree. The 1.5B successes are template echoes with no content (S10); corrected, "
+         f"{S['cross_model']['A3']['ex_echo'][SM]}/50 vs {S['cross_model']['A3']['ex_echo'][LG]}/50. C11 had already "
+         f"noticed the \"empty stubs\". This is a miscalculation, not an overreach."),
+        ("C4, C14", "Base64 fails because the model cannot decode the request; 1.5B hallucinates \"Hello World\".",
+         f"Agree. Content-word recall is {P2['s4'][SM]['mean_recall']:.2f} / {P2['s4'][LG]['mean_recall']:.2f} (S4). "
+         f"Minor: \"Hello World\" appears in 8 of 55 outputs, not all."),
+        ("C5", "Prefix injection works through shallow alignment: fixing the opening drives refusal-first to about 0.",
+         f"Agree, and the extra runs strengthen it: A5 rises with every size to "
+         f"{P2['s5']['qwen2.5-14b']['A5']['asr_ex_echo']:.2f} (S5) and the self-reminder does not stop it (S7)."),
+        ("C6", "Both models refuse direct requests, so attack rates are real wrapper effects.",
+         "Agree for Qwen. The SmolLM2 control (S6) shows why this check matters: without it, its attack rates would "
+         "look like jailbreaks."),
+        ("C7, C8, C13, C18", "The bigger model is more vulnerable to A1, A2, A5; C8: \"larger is less safe\"; C13 and "
+                             "C18 narrow this.",
+         f"Disagree with C8, agree with C13 and C18. Only A5 is significant "
+         f"({pbound(S['cross_model']['A5']['ex_echo']['fisher_p'])}), and across five sizes DAN drops to zero at 14B "
+         f"(S5). Size changes which attacks work."),
+        ("C10", "No paired difference overall (McNemar p = 1.0) because inversions cancel.",
+         "Partly. After the echo fix there is no A3 inversion left to cancel, and the test treats 25 cells as "
+         "independent when they share five behaviours (S1)."),
+        ("C11, C20", f"The judge agrees moderately with the hand labels (κ = {S['agreement'].get('cohen_kappa', 0):.2f}); "
+                     "trust it for ranking, not absolute rates.",
+         "Agree, with a sharper reason: every disagreement is on outputs that look like compliance without "
+         "content (S2), and the labels are still the assistant's until I review them."),
+        ("C19", "SmolLM2 complies with direct requests, so it belongs outside the D5 table.", "Agree (S6)."),
     ]
-    rows = [[c, R.esc(t), todo("agree / partly / disagree, with evidence")] for c, t in claims]
+    rows = [[c, R.esc(t), R.esc(k)] for c, t, k in claims]
     s2 = step2(("P16",), [
         ["1", "ai_analysis_r1.md, r2.md", "R1, R2", "20 numbered AI claims kept unchanged"],
         ["2", "critique-notes.md (my checklist)", "P16", "evidence for each claim linked from Part 2"]],
         """Every AI claim is numbered and kept as originally written, so each critique below points at a fixed
 target. For each claim I check it against the control, the interval, the hand labels and the raw outputs. Part 2 is
 where that evidence lives (S1 noise, S2 judge, S3 mechanism, S4 decoding, S10 echoes).""",
-        "My critique is the table above; the refined synthesis is in Question 7.")
+        """The critique is the table above. Refined synthesis: of the AI's claims, the ones about the mechanism of
+prefix injection, the base64 failure and the control survive; the many-shot claim was wrong, and "larger is less safe"
+holds only for A5. The AI's own second round caught its overreaches about size and the judge but missed its
+miscalculation on many-shot.""")
     return f"""
 <h2 class="q">Question 6. Critique of the AI's reasoning, point by point (deliverable 6)</h2>
 <h3>Step 1: Final answer</h3>
 <p>The AI drafted the Question 4 and 5 analysis in two recorded rounds (claims C1 to C20 in
-<code>report/ai_analysis_r1.md</code> and <code>r2.md</code>, both in the ZIP). Below is my critique of each main claim.
+<code>report/ai_analysis_r1.md</code> and <code>r2.md</code>, both in the ZIP). Below is my critique of each main claim, grouped where the AI made the same point twice.
 Judge-label agreement is κ = {S['agreement'].get('cohen_kappa', 0):.2f} over {S['agreement'].get('n', 0)} greedy
 outputs ({S['agreement']['kappa_is']}), which limits how far any claim that rests on the judge can be trusted.</p>
 {R.table(["Claim", "What the AI said", "My critique"], rows, "Table 8. The AI's claims and my critique")}
@@ -639,7 +701,12 @@ def q7():
     s2 = step2(("P16",), [["1", "Questions 3 to 6 and Part 2", "P16", "three lessons from the findings that survived"]],
                """The lessons are drawn only from findings that survived Question 6 and Part 2, so a retracted result
 (the A3 inversion) cannot turn up here as a lesson.""",
-               todo("are these three the right lessons? Hook: lesson 3 came from my own critique, not from the AI."))
+               """Requirements met: three lessons, each tied to evidence in this report. What changed from the AI's version:
+its draft lessons, written before the echo check, said capability "cuts both ways", with many-shot as the case where
+the larger model resists. That example was an artefact, so the lesson was rewritten around S5's result that size
+changes which attacks work. Lesson 3 did not come from the AI at all; it comes from catching the AI's own judge-based
+claim. Refined synthesis: the lessons that survive are about where refusal lives, what size does and does not change,
+and checking the judge against the outputs.""")
     return f"""
 <h2 class="q">Question 7. Three main lessons (deliverable 7)</h2>
 <h3>Step 1: Final answer (AI generated)</h3>
@@ -954,8 +1021,15 @@ hold at other sizes and on another family, what does a defence change, what does
 extra experiments I chose the two that test the D5 comparison directly (P17): more sizes, for the size claim, and
 defences, for the 'why'. I made the call on deleting PACE files (P18) myself instead of letting the assistant choose
 what to delete.""",
-        todo("hooks: the AI first explained A3 with a mechanism (C3) instead of checking the outputs; it proposed "
-             "Llama Guard without noticing the gate; its self-reminder text could not be checked against the paper."),
+        """Requirements met: each Part 2 section states a question, shows evidence from this experiment, and says
+what it means. What the AI got wrong along the way: it explained the A3 gap with a mechanism before anyone looked at
+the outputs, and the echo came out only when output lengths were tabulated for S9. It proposed Llama Guard 3 without
+noticing that the model is gated and PACE has no access token, and it could not verify the self-reminder wording
+against the original paper (S7 says so). While drafting S5 it also wrote that the 14B model "plays the persona but
+keeps refusing in it"; reading the outputs showed the model refuses outright. And before the size ladder ran, it had
+written in Question 5 that the pair's pattern "holds across the size ladder", which the ladder then contradicted.
+Refined synthesis: every Part 2 claim is now checked against the outputs or a table, and the two claims written ahead
+of the data were withdrawn.""",
         "")
     return f"""
 <h2 class="q pb">Part 2. Understanding the results (beyond the handout)</h2>
