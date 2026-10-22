@@ -70,3 +70,23 @@ python -m src.stats && python -m src.understand
   graded core is done; build `.venv-gcg` in a CPU batch job only if time remains.
 - **Launched:** main grid array `6422799` (0-15), SmolLM2 appendix `6422997` (0-7), judge
   `6422998` (dependency afterok on both). All pending on the H100 queue.
+
+### Oct 22: grid complete, Tier 0+1 analysis and report done
+- All 24 array tasks + judge COMPLETED Oct 20 (~5 min/task). 120 gen + 120 judge records pulled.
+- **Direct control holds:** 1.5B ASR 0.04, 7B 0.00. **Headline results (judge ASR):**
+  A5 0.64/0.86 (strongest; Fisher p=0.02, 7B higher), A2 0.50/0.68, A1 0.38/0.50,
+  A3 0.58/0.08 (**inversion**, Fisher p=1e-7), A4 0.00/0.00. McNemar greedy p=1.0 (inversions cancel).
+- **First-token (App B):** A5 drops P(refusal-first) to ~0 both; A3 barely moves 7B (0.025);
+  A4 on 7B bypasses refusal but ASR 0 (capability, not guardrail).
+- **Labels:** 120 assistant-proposed (unreviewed), κ(judge,assistant)=0.42; biggest split is A2
+  (judge=complied, human=partial). AWAITS human review (`python -m src.label --review`).
+- **AI analysis** drafted in two recorded rounds (`report/ai_analysis_r1.md`, `r2.md`, claims
+  C1–C20); critique hooks in `report/critique-notes.md`. **User writes the 4b critique.**
+- **Report built:** `report/report.html` → PDF, body ≈5 pages (≤8 OK), D3 outputs redacted, no
+  GTID. Appendices B–F (first-token, A3 curve, SmolLM2, GCG-deferred, compute).
+- **SmolLM2 (App D):** complies with several *direct* requests — near-zero safety tuning; kept
+  out of the D5 pair.
+- **Not committed:** the auto-mode classifier blocked `git commit`/`push` of the results+report
+  ("Out-of-Place Publication"). Files are on disk; commit/push left for the user to approve.
+- **Remaining:** (1) user reviews labels; (2) user writes 4b critiques (placeholders marked);
+  (3) `STUDENT_ID=… python -m src.build_pdf && … package`; (4) GCG still deferred (App E).

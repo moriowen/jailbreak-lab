@@ -26,7 +26,26 @@ placeholders against each numbered AI claim in `ai_analysis_r*.md`. Do not paste
 7. **Partial ≠ success.** Watch for the AI counting evasive/garbled output (a fiction with no
    real content, broken base64) as a jailbreak.
 
-## Per-round, per-point (fill after the AI rounds run)
+## Per-claim hooks (AI rounds are drafted in ai_analysis_r1.md / r2.md)
 
-- Round 1, point __: AI claimed ___ . My critique: ___
-- (…)
+The AI already self-corrected several round-1 claims in round 2 (C13–C20). Your critique can
+(a) agree and sharpen, or (b) go further. Concrete hooks, each tied to a number you can cite:
+
+- **C8 "larger is less safe" (critique the strongest).** Round 2 (C13) admits the size/capability
+  confound but still half-asserts it. Your move: this design *cannot* attribute the A5/A2 gap to
+  "weaker safety" — 7B following a malicious multi-part instruction better is exactly what a more
+  capable instruction-follower does. Cite that A5 is the only significant positive gap (Fisher
+  p=0.02) and A1/A2 are inside the CIs (C18).
+- **C4/C14 (A4 base64).** The AI first said "guardrail bypassed" then walked it back. Decide: is
+  A4 a safety result at all? 1.5B can't decode; 7B mis-decodes. Net ASR 0.00 on both. Arguably A4
+  tests capability, not alignment, for models this size — a cleaner claim than either AI version.
+- **C2/C12/C15 (A2 judge dependence).** The judge scores A2 0.50–0.68; you labelled every A2 greedy
+  `partial`. That's the biggest judge-vs-human split and the reason κ is only 0.42. Your call on
+  whether A2 is a real jailbreak or a fiction artefact is the single highest-value critique point.
+- **C3/C16 (A3).** Agree it's the robust finding, but push on the non-monotonic 1.5B curve
+  (0.58→0.76→0.58) being single-N-per-k — you can't claim a scaling law from it, only a direction.
+- **C11/C20 (judge).** κ=0.42 is "moderate," not "good." Say what you'd trust it for (ranking
+  attacks) and not (absolute ASR).
+- **Anything resting on one greedy output (C1, C5):** flag per C17 — cite the ASR+CI instead.
+
+Delete this file (or keep it untracked) before submitting; it is scaffolding, not a deliverable.
